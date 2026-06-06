@@ -725,6 +725,35 @@
             width: 34px; cursor: pointer; color: #dc2626; font-size: 1.1rem;
         }
 
+        /* ── Lichtreflexe auf allen weiteren Buttons ─────────────── */
+        .nav-tab,
+        .icon-btn,
+        .kind-row-x,
+        .logbook-tab,
+        .modal-close,
+        .anf-del,
+        .abschnitt-bubble {
+            position: relative;
+            overflow: hidden;
+        }
+        .nav-tab::before,
+        .icon-btn::before,
+        .kind-row-x::before,
+        .logbook-tab::before,
+        .modal-close::before,
+        .anf-del::before,
+        .abschnitt-bubble::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 18% 18%, rgba(255,255,255,0.50) 0%, transparent 52%),
+                radial-gradient(ellipse at 80% 14%, rgba(255,255,255,0.24) 0%, transparent 38%),
+                radial-gradient(ellipse at 10% 82%, rgba(255,255,255,0.10) 0%, transparent 28%);
+            border-radius: inherit;
+            pointer-events: none;
+        }
+
         /* Entweder/Oder-Gruppe im Logbuch */
         .lb-eo-group {
             border: 1.5px solid #ddd6fe;
