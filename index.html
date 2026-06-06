@@ -917,20 +917,20 @@
 
         /* ── Schildkröten-Schatten ─────────────────────────────── */
         @keyframes turtle-swim-a {
-            0%          { transform: translate(-220px, 58vh) rotate(-14deg); opacity: 0; }
+            0%          { transform: translate(-220px, var(--t-sy, 55vh)) rotate(-14deg); opacity: 0; }
             6%          { opacity: 0; }
             10%         { opacity: 1; }
             90%         { opacity: 1; }
             94%         { opacity: 0; }
-            100%        { transform: translate(calc(100vw + 220px), 30vh) rotate(-14deg); opacity: 0; }
+            100%        { transform: translate(calc(100vw + 220px), var(--t-ey, 32vh)) rotate(-14deg); opacity: 0; }
         }
         @keyframes turtle-swim-b {
-            0%          { transform: translate(calc(100vw + 220px), 50vh) rotate(162deg); opacity: 0; }
+            0%          { transform: translate(calc(100vw + 220px), var(--t-sy, 48vh)) rotate(162deg); opacity: 0; }
             6%          { opacity: 0; }
             10%         { opacity: 1; }
             90%         { opacity: 1; }
             94%         { opacity: 0; }
-            100%        { transform: translate(-220px, 72vh) rotate(162deg); opacity: 0; }
+            100%        { transform: translate(-220px, var(--t-ey, 70vh)) rotate(162deg); opacity: 0; }
         }
         @keyframes turtle-flap {
             0%, 100%    { transform: scaleY(1) rotate(0deg); }
@@ -954,8 +954,7 @@
             width: 100%; height: 100%;
             animation: turtle-flap 2.2s ease-in-out infinite;
         }
-        .turtle-a { animation: turtle-swim-a 22s linear infinite; }
-        .turtle-b { animation: turtle-swim-b 27s linear 13s infinite; }
+        /* .turtle-a / .turtle-b werden per JS animiert (randomisiert) */
 
         /* ── Sicherung ────────────────────────────────────────── */
         .backup-warn-dot {
@@ -2427,6 +2426,34 @@ async function speichern() {
 // ── Init ──────────────────────────────────────────────────────────
 
 load();
+
+// ── Schildkröten (randomisiert) ───────────────────────────────────
+(function() {
+    function swimTurtle(el) {
+        const ltr = el.classList.contains('turtle-a');
+        const sy  = (10 + Math.random() * 72).toFixed(1);   // 10–82 vh
+        const ey  = (10 + Math.random() * 72).toFixed(1);
+        const dur = (13 + Math.random() * 24).toFixed(1);   // 13–37 s
+        const sz  = Math.round(110 + Math.random() * 130);  // 110–240 px
+        el.style.setProperty('--t-sy', sy + 'vh');
+        el.style.setProperty('--t-ey', ey + 'vh');
+        el.style.width  = sz + 'px';
+        el.style.height = Math.round(sz * 0.9) + 'px';
+        // Flossengeschwindigkeit leicht variieren
+        const svg = el.querySelector('svg');
+        if (svg) svg.style.animationDuration = (1.4 + Math.random() * 1.6).toFixed(2) + 's';
+        // Animation neu starten
+        el.style.animation = 'none';
+        void el.offsetWidth; // reflow erzwingen
+        el.style.animation = (ltr ? 'turtle-swim-a' : 'turtle-swim-b') + ' ' + dur + 's linear forwards';
+        el.addEventListener('animationend', function() { swimTurtle(el); }, { once: true });
+    }
+    // Schildkröte A startet sofort, B mit versetztem Delay
+    const turtles = document.querySelectorAll('.turtle-a, .turtle-b');
+    turtles.forEach(function(el, i) {
+        setTimeout(function() { swimTurtle(el); }, i === 0 ? Math.random() * 1000 : 7000 + Math.random() * 8000);
+    });
+}());
 
 (function initApp() {
     renderKurse();
