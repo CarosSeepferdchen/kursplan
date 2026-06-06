@@ -7,10 +7,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Seepferdchen">
-    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+    <link rel="manifest" href="/manifest.json">
     <title>Caros Seepferdchen</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -946,7 +946,7 @@
         .turtle {
             position: absolute;
             top: 0; left: 0;
-            width: 200px; height: 115px;
+            width: 200px; height: 180px;
             color: rgba(12, 38, 98, 0.13);
             filter: blur(1.5px);
         }
@@ -982,36 +982,35 @@
 <body>
 <div class="water-shimmer" aria-hidden="true"></div>
 <div class="turtle-layer" aria-hidden="true">
-    <div class="turtle turtle-a"><svg viewBox="0 0 210 110" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+    <div class="turtle turtle-a"><svg viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+        <!-- Hintere Flossen (klein, schräg nach hinten) -->
+        <path d="M 72,62 C 66,46 54,33 42,30 C 38,34 44,44 54,49 C 64,53 72,58 76,68 Z"/>
+        <path d="M 72,118 C 66,134 54,147 42,150 C 38,146 44,136 54,131 C 64,127 72,122 76,112 Z"/>
+        <!-- Vordere Flossen (lang, schmal, Paddel-Form, oben + unten) -->
+        <path d="M 107,56 C 104,38 108,18 116,6 C 122,4 128,8 128,18 C 126,32 122,48 120,60 Z"/>
+        <path d="M 107,124 C 104,142 108,162 116,174 C 122,176 128,172 128,162 C 126,148 122,132 120,120 Z"/>
+        <!-- Panzer (rund) -->
+        <ellipse cx="100" cy="90" rx="44" ry="40"/>
         <!-- Schwanz -->
-        <path d="M 55 52 C 44 52 38 55 38 55 C 38 55 44 58 55 58 Z"/>
-        <!-- Hintere Flossen (kleiner, paddle-förmig) -->
-        <path d="M 68 38 C 58 26 44 17 30 14 C 21 11 20 21 28 25 C 40 31 58 38 70 46 Z"/>
-        <path d="M 68 72 C 58 84 44 93 30 96 C 21 99 20 89 28 85 C 40 79 58 72 70 64 Z"/>
-        <!-- Panzer (charakteristisch oval) -->
-        <path d="M 135 55 C 135 33 118 26 95 26 C 72 26 55 33 55 55 C 55 77 72 84 95 84 C 118 84 135 77 135 55 Z"/>
-        <!-- Vordere Flossen (groß, flügelartig, geschwungen) -->
-        <path d="M 115 32 C 128 24 162 10 183 5 C 193 1 194 11 185 17 C 170 27 148 38 133 50 Z"/>
-        <path d="M 115 78 C 128 86 162 100 183 105 C 193 109 194 99 185 93 C 170 83 148 72 133 60 Z"/>
-        <!-- Hals -->
-        <path d="M 135 50 C 143 50 147 53 148 55 C 147 57 143 60 135 60 Z"/>
-        <!-- Kopf (rund, größer als bei Landschildkröten) -->
-        <ellipse cx="160" cy="55" rx="14" ry="12"/>
+        <path d="M 56,86 C 48,83 42,88 42,88 C 42,88 48,93 56,91 Z"/>
+        <!-- Hals + Kopf -->
+        <path d="M 143,82 C 152,79 163,83 168,90 C 163,97 152,101 143,98 Z"/>
+        <ellipse cx="178" cy="90" rx="15" ry="12"/>
     </svg></div>
-    <div class="turtle turtle-b"><svg viewBox="0 0 210 110" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-        <path d="M 55 52 C 44 52 38 55 38 55 C 38 55 44 58 55 58 Z"/>
-        <path d="M 68 38 C 58 26 44 17 30 14 C 21 11 20 21 28 25 C 40 31 58 38 70 46 Z"/>
-        <path d="M 68 72 C 58 84 44 93 30 96 C 21 99 20 89 28 85 C 40 79 58 72 70 64 Z"/>
-        <path d="M 135 55 C 135 33 118 26 95 26 C 72 26 55 33 55 55 C 55 77 72 84 95 84 C 118 84 135 77 135 55 Z"/>
-        <path d="M 115 32 C 128 24 162 10 183 5 C 193 1 194 11 185 17 C 170 27 148 38 133 50 Z"/>
-        <path d="M 115 78 C 128 86 162 100 183 105 C 193 109 194 99 185 93 C 170 83 148 72 133 60 Z"/>
-        <path d="M 135 50 C 143 50 147 53 148 55 C 147 57 143 60 135 60 Z"/>
-        <ellipse cx="160" cy="55" rx="14" ry="12"/>
+    <div class="turtle turtle-b"><svg viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+        <path d="M 72,62 C 66,46 54,33 42,30 C 38,34 44,44 54,49 C 64,53 72,58 76,68 Z"/>
+        <path d="M 72,118 C 66,134 54,147 42,150 C 38,146 44,136 54,131 C 64,127 72,122 76,112 Z"/>
+        <path d="M 107,56 C 104,38 108,18 116,6 C 122,4 128,8 128,18 C 126,32 122,48 120,60 Z"/>
+        <path d="M 107,124 C 104,142 108,162 116,174 C 122,176 128,172 128,162 C 126,148 122,132 120,120 Z"/>
+        <ellipse cx="100" cy="90" rx="44" ry="40"/>
+        <path d="M 56,86 C 48,83 42,88 42,88 C 42,88 48,93 56,91 Z"/>
+        <path d="M 143,82 C 152,79 163,83 168,90 C 163,97 152,101 143,98 Z"/>
+        <ellipse cx="178" cy="90" rx="15" ry="12"/>
     </svg></div>
 </div>
 
 <header class="header">
-    <div class="header-title"><img src="icon-192.png" style="height:1.9rem;width:1.9rem;border-radius:50%;flex-shrink:0;object-fit:cover"> Caros Seepferdchen</div>
+    <div class="header-title"><img src="/icon-192.png" style="height:1.9rem;width:1.9rem;border-radius:50%;flex-shrink:0;object-fit:cover"> Caros Seepferdchen</div>
     <div class="header-actions">
         <button class="header-btn" id="backup-btn" onclick="openBackupModal()" title="Daten sichern">🛟 Sicherung<span class="backup-warn-dot" id="backup-warn-dot" style="display:none"></span></button>
         <button class="header-btn header-btn-pdf" onclick="teilen()">↗ Drucken / PDF</button>
@@ -1143,6 +1142,7 @@
             <button class="modal-close" onclick="closeModal('modal-backup')">×</button>
         </div>
         <div id="backup-status" style="font-size:.85rem;font-weight:600;margin-bottom:.4rem"></div>
+        <div id="backup-cloud-status" style="font-size:.8rem;margin-bottom:.9rem;color:#0369a1"></div>
         <div style="display:flex;gap:.6rem;margin-bottom:1.2rem">
             <button class="btn btn-primary" onclick="exportData()" style="flex:1">💾 Sicherung speichern</button>
             <button class="btn btn-secondary" onclick="document.getElementById('backup-file-input').click()" style="flex:1">📂 Sicherung laden</button>
@@ -1386,6 +1386,19 @@ function renderBackupList() {
         } else {
             statusEl.innerHTML = '⚠️ Noch keine Sicherungsdatei gespeichert — bitte einmal „Sicherung speichern".';
             statusEl.style.color = '#c2410c';
+        }
+    }
+    const cloudEl = document.getElementById('backup-cloud-status');
+    if (cloudEl) {
+        const ls = localStorage.getItem(SERVER_BACKUP_KEY);
+        if (ls) {
+            const d = new Date(Number(ls));
+            const heute = d.toLocaleDateString('de-DE') === new Date().toLocaleDateString('de-DE');
+            const wann = heute ? 'heute ' + d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})
+                               : d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
+            cloudEl.innerHTML = '☁️ Automatisch in Dropbox gesichert: ' + wann + ' ✓';
+        } else {
+            cloudEl.innerHTML = '☁️ Automatische Dropbox-Sicherung aktiv (sichert beim nächsten Ändern).';
         }
     }
     const wrap = document.getElementById('backup-list');
@@ -2419,7 +2432,7 @@ load();
     renderKurse();
     maybeRemindBackup();
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
 }());
 </script>
