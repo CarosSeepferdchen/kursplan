@@ -1089,9 +1089,15 @@
                 <label class="form-label">Wochentag</label>
                 <select class="form-select" id="kurs-tag"></select>
             </div>
+        </div>
+        <div class="form-row">
             <div class="form-group">
-                <label class="form-label">Jahrgang</label>
-                <input class="form-input" type="number" id="kurs-jahrgang" placeholder="z.B. 2016" min="2000" max="2030">
+                <label class="form-label">Jahrgang von</label>
+                <input class="form-input" type="number" id="kurs-jahrgang" placeholder="z.B. 2015" min="2000" max="2030">
+            </div>
+            <div class="form-group">
+                <label class="form-label">bis</label>
+                <input class="form-input" type="number" id="kurs-jahrgang-bis" placeholder="z.B. 2020" min="2000" max="2030">
             </div>
         </div>
         <div class="form-row">
@@ -1636,7 +1642,7 @@ function renderKursTrainingCard(kursId) {
         <div class="kurs-card-head" style="background:${cf.hell}">
             <div class="kurs-head-left">
                 <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}</div>
-                <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ' · Jg. ' + kurs.jahrgang : ''}</div>
+                <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}</div>
             </div>
         </div>
         <div class="abschnitt-bar">${blasen}</div>
@@ -1850,7 +1856,7 @@ function kursCardHTML(kurs) {
         <div class="kurs-card-head" style="background:${cf.hell}">
             <div class="kurs-head-left">
                 <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}</div>
-                <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ` · Jg. ${kurs.jahrgang}` : ''} · ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</div>
+                <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''} · ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</div>
             </div>
             <div class="kurs-actions">
                 <button class="btn btn-sm trainer-only" style="background:${cf.farbe};color:white" onclick="openAddKind('${kurs.id}')">＋ Kind</button>
@@ -2117,11 +2123,18 @@ function fillTagSelect(selected) {
     ).join('');
 }
 
+function formatJahrgang(von, bis) {
+    if (!von) return '';
+    if (!bis || bis === von) return 'Jg. ' + von;
+    return 'Jg. ' + von + '–' + String(bis).slice(-2);
+}
+
 function openAddKurs() {
     editKursId = null;
     document.getElementById('modal-kurs-title').textContent = 'Kurs anlegen';
     document.getElementById('kurs-name').value = '';
     document.getElementById('kurs-jahrgang').value = '';
+    document.getElementById('kurs-jahrgang-bis').value = '';
     document.getElementById('kurs-von').value = '';
     document.getElementById('kurs-bis').value = '';
     fillTagSelect(currentDay === 'alle' ? HEUTE : currentDay);
@@ -2135,6 +2148,7 @@ function openEditKurs(id) {
     document.getElementById('modal-kurs-title').textContent = 'Kurs bearbeiten';
     document.getElementById('kurs-name').value = kurs.name;
     document.getElementById('kurs-jahrgang').value = kurs.jahrgang || '';
+    document.getElementById('kurs-jahrgang-bis').value = kurs.jahrgangBis || '';
     document.getElementById('kurs-von').value = kurs.von || '';
     document.getElementById('kurs-bis').value = kurs.bis || '';
     fillTagSelect(kurs.wochentag);
@@ -2144,14 +2158,15 @@ function openEditKurs(id) {
 function saveKurs() {
     const name = document.getElementById('kurs-name').value.trim();
     if (!name) { document.getElementById('kurs-name').focus(); return; }
-    const wochentag = parseInt(document.getElementById('kurs-tag').value);
-    const jahrgang = parseInt(document.getElementById('kurs-jahrgang').value) || null;
+    const wochentag   = parseInt(document.getElementById('kurs-tag').value);
+    const jahrgang    = parseInt(document.getElementById('kurs-jahrgang').value) || null;
+    const jahrgangBis = parseInt(document.getElementById('kurs-jahrgang-bis').value) || null;
     const von = document.getElementById('kurs-von').value;
     const bis = document.getElementById('kurs-bis').value;
     if (editKursId) {
-        Object.assign(getKurs(editKursId), { name, wochentag, jahrgang, von, bis });
+        Object.assign(getKurs(editKursId), { name, wochentag, jahrgang, jahrgangBis, von, bis });
     } else {
-        state.kurse.push({ id: uid(), name, wochentag, jahrgang, von, bis });
+        state.kurse.push({ id: uid(), name, wochentag, jahrgang, jahrgangBis, von, bis });
     }
     currentDay = wochentag;
     save(); closeModal('modal-kurs'); renderKurse();
@@ -2387,7 +2402,7 @@ function teilen() {
         body += `<div style="margin-bottom:14px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;page-break-inside:avoid">
             <div style="background:${cf.hell};border-left:4px solid ${cf.farbe};padding:7px 10px">
                 <div style="font-size:13px;font-weight:800;color:${cf.farbe}">${esc(kurs.name)}</div>
-                <div style="font-size:9px;color:#666;margin-top:2px">${WOCHENTAGE[kurs.wochentag]}${zeit}${kurs.jahrgang ? ' &middot; Jg. ' + kurs.jahrgang : ''} &middot; ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</div>
+                <div style="font-size:9px;color:#666;margin-top:2px">${WOCHENTAGE[kurs.wochentag]}${zeit}${kurs.jahrgang ? ' &middot; ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''} &middot; ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</div>
             </div>
             ${kinderHTML}
         </div>`;
