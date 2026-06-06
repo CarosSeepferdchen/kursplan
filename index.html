@@ -918,18 +918,20 @@
         /* ── Schildkröten-Schatten ─────────────────────────────── */
         @keyframes turtle-swim-a {
             0%          { transform: translate(-220px, var(--t-sy, 55vh)) rotate(-14deg); opacity: 0; }
-            6%          { opacity: 0; }
-            10%         { opacity: 1; }
-            90%         { opacity: 1; }
-            94%         { opacity: 0; }
+            8%          { opacity: 0; }
+            13%         { opacity: 1; }
+            50%         { transform: translate(50vw, var(--t-my, 44vh)) rotate(var(--t-mr, -14deg)); }
+            87%         { opacity: 1; }
+            92%         { opacity: 0; }
             100%        { transform: translate(calc(100vw + 220px), var(--t-ey, 32vh)) rotate(-14deg); opacity: 0; }
         }
         @keyframes turtle-swim-b {
             0%          { transform: translate(calc(100vw + 220px), var(--t-sy, 48vh)) rotate(162deg); opacity: 0; }
-            6%          { opacity: 0; }
-            10%         { opacity: 1; }
-            90%         { opacity: 1; }
-            94%         { opacity: 0; }
+            8%          { opacity: 0; }
+            13%         { opacity: 1; }
+            50%         { transform: translate(50vw, var(--t-my, 60vh)) rotate(var(--t-mr, 162deg)); }
+            87%         { opacity: 1; }
+            92%         { opacity: 0; }
             100%        { transform: translate(-220px, var(--t-ey, 70vh)) rotate(162deg); opacity: 0; }
         }
         @keyframes turtle-flap {
@@ -1141,7 +1143,6 @@
             <button class="modal-close" onclick="closeModal('modal-backup')">×</button>
         </div>
         <div id="backup-status" style="font-size:.85rem;font-weight:600;margin-bottom:.4rem"></div>
-        <div id="backup-cloud-status" style="font-size:.8rem;margin-bottom:.9rem;color:#0369a1"></div>
         <div style="display:flex;gap:.6rem;margin-bottom:1.2rem">
             <button class="btn btn-primary" onclick="exportData()" style="flex:1">💾 Sicherung speichern</button>
             <button class="btn btn-secondary" onclick="document.getElementById('backup-file-input').click()" style="flex:1">📂 Sicherung laden</button>
@@ -1385,19 +1386,6 @@ function renderBackupList() {
         } else {
             statusEl.innerHTML = '⚠️ Noch keine Sicherungsdatei gespeichert — bitte einmal „Sicherung speichern".';
             statusEl.style.color = '#c2410c';
-        }
-    }
-    const cloudEl = document.getElementById('backup-cloud-status');
-    if (cloudEl) {
-        const ls = localStorage.getItem(SERVER_BACKUP_KEY);
-        if (ls) {
-            const d = new Date(Number(ls));
-            const heute = d.toLocaleDateString('de-DE') === new Date().toLocaleDateString('de-DE');
-            const wann = heute ? 'heute ' + d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})
-                               : d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
-            cloudEl.innerHTML = '☁️ Automatisch in Dropbox gesichert: ' + wann + ' ✓';
-        } else {
-            cloudEl.innerHTML = '☁️ Automatische Dropbox-Sicherung aktiv (sichert beim nächsten Ändern).';
         }
     }
     const wrap = document.getElementById('backup-list');
@@ -2430,28 +2418,43 @@ load();
 // ── Schildkröten (randomisiert) ───────────────────────────────────
 (function() {
     function swimTurtle(el) {
-        const ltr = el.classList.contains('turtle-a');
-        const sy  = (10 + Math.random() * 72).toFixed(1);   // 10–82 vh
-        const ey  = (10 + Math.random() * 72).toFixed(1);
-        const dur = (13 + Math.random() * 24).toFixed(1);   // 13–37 s
-        const sz  = Math.round(110 + Math.random() * 130);  // 110–240 px
-        el.style.setProperty('--t-sy', sy + 'vh');
-        el.style.setProperty('--t-ey', ey + 'vh');
-        el.style.width  = sz + 'px';
-        el.style.height = Math.round(sz * 0.9) + 'px';
-        // Flossengeschwindigkeit leicht variieren
-        const svg = el.querySelector('svg');
-        if (svg) svg.style.animationDuration = (1.4 + Math.random() * 1.6).toFixed(2) + 's';
+        const ltr     = el.classList.contains('turtle-a');
+        const baseRot = ltr ? -14 : 162;
+
+        // Zufällige Start- und Endposition (15–80 vh)
+        const sy  = 15 + Math.random() * 65;
+        const ey  = 15 + Math.random() * 65;
+        const avg = (sy + ey) / 2;
+
+        // ~35% geschwungen, ~65% fast gerade
+        let my, mr;
+        if (Math.random() < 0.35) {
+            const dev = 18 + Math.random() * 22;          // 18–40 vh Abweichung
+            my = Math.max(8, Math.min(88, avg + (Math.random() < 0.5 ? -dev : dev)));
+            // Leicht in Kurvenrichtung neigen
+            mr = baseRot + (my < avg ? -7 : 7) * (ltr ? 1 : -1);
+        } else {
+            my = avg + (Math.random() - 0.5) * 8;          // fast gerade
+            mr = baseRot;
+        }
+
+        el.style.setProperty('--t-sy', sy.toFixed(1) + 'vh');
+        el.style.setProperty('--t-my', my.toFixed(1) + 'vh');
+        el.style.setProperty('--t-ey', ey.toFixed(1) + 'vh');
+        el.style.setProperty('--t-mr', mr.toFixed(1) + 'deg');
+
+        // Geschwindigkeit wie vorher (A ≈ 22s, B ≈ 27s, ±2s Variation)
+        const dur = ((ltr ? 22 : 27) + (Math.random() - 0.5) * 4).toFixed(1);
+
         // Animation neu starten
         el.style.animation = 'none';
-        void el.offsetWidth; // reflow erzwingen
-        el.style.animation = (ltr ? 'turtle-swim-a' : 'turtle-swim-b') + ' ' + dur + 's linear forwards';
+        void el.offsetWidth;
+        el.style.animation = (ltr ? 'turtle-swim-a' : 'turtle-swim-b') + ' ' + dur + 's ease-in-out forwards';
         el.addEventListener('animationend', function() { swimTurtle(el); }, { once: true });
     }
-    // Schildkröte A startet sofort, B mit versetztem Delay
-    const turtles = document.querySelectorAll('.turtle-a, .turtle-b');
-    turtles.forEach(function(el, i) {
-        setTimeout(function() { swimTurtle(el); }, i === 0 ? Math.random() * 1000 : 7000 + Math.random() * 8000);
+    // A startet sofort, B versetzt
+    document.querySelectorAll('.turtle-a, .turtle-b').forEach(function(el, i) {
+        setTimeout(function() { swimTurtle(el); }, i === 0 ? Math.random() * 800 : 10000 + Math.random() * 4000);
     });
 }());
 
@@ -2459,7 +2462,7 @@ load();
     renderKurse();
     maybeRemindBackup();
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
+        navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 }());
 </script>
