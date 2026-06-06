@@ -1,5 +1,5 @@
-const CACHE = 'seepferdchen-v1780763926';
-const CACHE_ASSETS = ['/', '/manifest.json', '/icon-512.png'];
+const CACHE = 'seepferdchen-v2';
+const CACHE_ASSETS = ['./', './manifest.json', './icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CACHE_ASSETS)));
@@ -17,8 +17,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  // API-Aufrufe niemals cachen
-  if (url.pathname === '/data' || url.pathname === '/backup') return;
+  if (url.pathname.endsWith('/data') || url.pathname.endsWith('/backup')) return;
   e.respondWith(
     fetch(e.request)
       .then(resp => {

@@ -915,6 +915,48 @@
 
         @keyframes cloudPulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
+        /* ── Schildkröten-Schatten ─────────────────────────────── */
+        @keyframes turtle-swim-a {
+            0%          { transform: translate(-220px, 58vh) rotate(-14deg); opacity: 0; }
+            6%          { opacity: 0; }
+            10%         { opacity: 1; }
+            90%         { opacity: 1; }
+            94%         { opacity: 0; }
+            100%        { transform: translate(calc(100vw + 220px), 30vh) rotate(-14deg); opacity: 0; }
+        }
+        @keyframes turtle-swim-b {
+            0%          { transform: translate(calc(100vw + 220px), 50vh) rotate(162deg); opacity: 0; }
+            6%          { opacity: 0; }
+            10%         { opacity: 1; }
+            90%         { opacity: 1; }
+            94%         { opacity: 0; }
+            100%        { transform: translate(-220px, 72vh) rotate(162deg); opacity: 0; }
+        }
+        @keyframes turtle-flap {
+            0%, 100%    { transform: scaleY(1) rotate(0deg); }
+            25%         { transform: scaleY(0.93) rotate(-0.4deg); }
+            75%         { transform: scaleY(1.04) rotate(0.4deg); }
+        }
+        .turtle-layer {
+            position: fixed; inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .turtle {
+            position: absolute;
+            top: 0; left: 0;
+            width: 200px; height: 115px;
+            color: rgba(12, 38, 98, 0.13);
+            filter: blur(1.5px);
+        }
+        .turtle svg {
+            width: 100%; height: 100%;
+            animation: turtle-flap 2.2s ease-in-out infinite;
+        }
+        .turtle-a { animation: turtle-swim-a 22s linear infinite; }
+        .turtle-b { animation: turtle-swim-b 27s linear 13s infinite; }
+
         /* ── Sicherung ────────────────────────────────────────── */
         .backup-warn-dot {
             display: inline-block; width: 8px; height: 8px; border-radius: 50%;
@@ -939,6 +981,34 @@
 </head>
 <body>
 <div class="water-shimmer" aria-hidden="true"></div>
+<div class="turtle-layer" aria-hidden="true">
+    <div class="turtle turtle-a"><svg viewBox="0 0 210 110" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+        <!-- Schwanz -->
+        <path d="M 55 52 C 44 52 38 55 38 55 C 38 55 44 58 55 58 Z"/>
+        <!-- Hintere Flossen (kleiner, paddle-förmig) -->
+        <path d="M 68 38 C 58 26 44 17 30 14 C 21 11 20 21 28 25 C 40 31 58 38 70 46 Z"/>
+        <path d="M 68 72 C 58 84 44 93 30 96 C 21 99 20 89 28 85 C 40 79 58 72 70 64 Z"/>
+        <!-- Panzer (charakteristisch oval) -->
+        <path d="M 135 55 C 135 33 118 26 95 26 C 72 26 55 33 55 55 C 55 77 72 84 95 84 C 118 84 135 77 135 55 Z"/>
+        <!-- Vordere Flossen (groß, flügelartig, geschwungen) -->
+        <path d="M 115 32 C 128 24 162 10 183 5 C 193 1 194 11 185 17 C 170 27 148 38 133 50 Z"/>
+        <path d="M 115 78 C 128 86 162 100 183 105 C 193 109 194 99 185 93 C 170 83 148 72 133 60 Z"/>
+        <!-- Hals -->
+        <path d="M 135 50 C 143 50 147 53 148 55 C 147 57 143 60 135 60 Z"/>
+        <!-- Kopf (rund, größer als bei Landschildkröten) -->
+        <ellipse cx="160" cy="55" rx="14" ry="12"/>
+    </svg></div>
+    <div class="turtle turtle-b"><svg viewBox="0 0 210 110" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+        <path d="M 55 52 C 44 52 38 55 38 55 C 38 55 44 58 55 58 Z"/>
+        <path d="M 68 38 C 58 26 44 17 30 14 C 21 11 20 21 28 25 C 40 31 58 38 70 46 Z"/>
+        <path d="M 68 72 C 58 84 44 93 30 96 C 21 99 20 89 28 85 C 40 79 58 72 70 64 Z"/>
+        <path d="M 135 55 C 135 33 118 26 95 26 C 72 26 55 33 55 55 C 55 77 72 84 95 84 C 118 84 135 77 135 55 Z"/>
+        <path d="M 115 32 C 128 24 162 10 183 5 C 193 1 194 11 185 17 C 170 27 148 38 133 50 Z"/>
+        <path d="M 115 78 C 128 86 162 100 183 105 C 193 109 194 99 185 93 C 170 83 148 72 133 60 Z"/>
+        <path d="M 135 50 C 143 50 147 53 148 55 C 147 57 143 60 135 60 Z"/>
+        <ellipse cx="160" cy="55" rx="14" ry="12"/>
+    </svg></div>
+</div>
 
 <header class="header">
     <div class="header-title"><img src="icon-192.png" style="height:1.9rem;width:1.9rem;border-radius:50%;flex-shrink:0;object-fit:cover"> Caros Seepferdchen</div>
@@ -1227,10 +1297,6 @@ function save() {
     pushBackup();
 }
 
-
-
-
-
 function exportData() {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -1321,7 +1387,6 @@ function renderBackupList() {
             statusEl.innerHTML = '⚠️ Noch keine Sicherungsdatei gespeichert — bitte einmal „Sicherung speichern".';
             statusEl.style.color = '#c2410c';
         }
-    }
     }
     const wrap = document.getElementById('backup-list');
     if (!wrap) return;
@@ -2350,7 +2415,11 @@ async function speichern() {
 
 load();
 
-(function initApp() {
+(async function initApp() {
+    // Zuerst Festplatte / anderen Gerät prüfen, dann rendern.
+    // Wenn lokal nichts gespeichert ist (z.B. nach Verlauf löschen),
+    // kommt alles innerhalb von ~2 Sekunden automatisch wieder.
+    await syncOnStart();
     renderKurse();
     maybeRemindBackup();
     if ('serviceWorker' in navigator) {
