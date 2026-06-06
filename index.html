@@ -1211,13 +1211,18 @@ const editorMode  = false;
 
 // Farbpalette für Kurskarten — Zuweisung nach Reihenfolge in state.kurse
 const KURS_FARBEN = [
-    { farbe: '#ca8a04', hell: '#fefce8' },  // gelb (1. Kurs)
-    { farbe: '#dc2626', hell: '#fef2f2' },  // rot  (2. Kurs)
-    { farbe: '#9333ea', hell: '#faf5ff' },  // lila (3. Kurs)
-    { farbe: '#2563eb', hell: '#eff6ff' },  // blau (4. Kurs)
+    { farbe: '#eab308', hell: '#fefce8' },  // gelb  (frühester Kurs)
+    { farbe: '#dc2626', hell: '#fef2f2' },  // rot   (2. Kurs)
+    { farbe: '#2563eb', hell: '#eff6ff' },  // blau  (3. Kurs)
+    { farbe: '#9333ea', hell: '#faf5ff' },  // lila  (spätester Kurs)
 ];
+function _kurseNachZeit() {
+    return [...state.kurse].sort((a, b) =>
+        (a.von || '99:99').localeCompare(b.von || '99:99') || a.name.localeCompare(b.name, 'de')
+    );
+}
 function kursFarbe(kursId) {
-    const idx = state.kurse.findIndex(k => k.id === kursId);
+    const idx = _kurseNachZeit().findIndex(k => k.id === kursId);
     return KURS_FARBEN[Math.max(0, idx) % KURS_FARBEN.length];
 }
 
@@ -1652,9 +1657,7 @@ function renderKursTrainingCard(kursId) {
 
 function renderTraining() {
     const wrap = document.getElementById('training-list');
-    const kurse = [...state.kurse].sort((a, b) =>
-        a.wochentag - b.wochentag || (a.von || '').localeCompare(b.von || '')
-    );
+    const kurse = _kurseNachZeit();
     if (!kurse.length) {
         wrap.innerHTML = '<div class="empty-state"><h3>Noch keine Kurse angelegt</h3><p>Lege zuerst einen Kurs an.</p></div>';
         return;
@@ -1814,14 +1817,12 @@ function renderKurse() {
 
     let html = '';
     if (currentDay === 'alle') {
-        let any = false;
-        WOCHENTAGE.forEach((tag, di) => {
-            const kurse = kurseAmTag(di);
-            if (!kurse.length) return;
-            any = true;
-            kurse.forEach(kurs => html += kursCardHTML(kurs));
-        });
-        if (!any && !kinderOhneKurs().length) html += emptyKurseHTML();
+        const alleKurse = _kurseNachZeit();
+        if (alleKurse.length) {
+            alleKurse.forEach(kurs => html += kursCardHTML(kurs));
+        } else if (!kinderOhneKurs().length) {
+            html += emptyKurseHTML();
+        }
     } else {
         const kurse = kurseAmTag(currentDay);
         if (kurse.length) kurse.forEach(kurs => html += kursCardHTML(kurs));
