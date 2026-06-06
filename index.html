@@ -30,6 +30,15 @@
             40%       { opacity: .70; transform: translate(-40px, 30px) scale(1.06); }
             75%       { opacity: .30; transform: translate(28px, -18px) scale(.97); }
         }
+        @keyframes water-ripple {
+            to { transform: scale(4); opacity: 0; }
+        }
+        @keyframes shimmerC {
+            0%,100% { opacity:.75; transform:translate(0,0) scaleX(1); }
+            20%      { opacity:.95; transform:translate(30px,-20px) scaleX(1.05); }
+            45%      { opacity:.55; transform:translate(-18px,35px) scaleX(.97); }
+            70%      { opacity:.88; transform:translate(22px,-12px) scaleX(1.03); }
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -47,9 +56,10 @@
             content: '';
             position: fixed; inset: 0;
             background:
-                radial-gradient(ellipse 44% 34% at 14% 24%, rgba(255,255,255,.58) 0%, transparent 70%),
-                radial-gradient(ellipse 36% 52% at 78% 66%, rgba(255,255,255,.42) 0%, transparent 70%),
-                radial-gradient(ellipse 52% 28% at 54% 8%,  rgba(255,255,255,.38) 0%, transparent 70%);
+                radial-gradient(ellipse 44% 34% at 14% 24%, rgba(255,255,255,.82) 0%, transparent 65%),
+                radial-gradient(ellipse 36% 52% at 78% 66%, rgba(255,255,255,.65) 0%, transparent 65%),
+                radial-gradient(ellipse 52% 28% at 54% 8%,  rgba(255,255,255,.60) 0%, transparent 65%),
+                radial-gradient(ellipse 22% 16% at 38% 50%, rgba(255,255,255,.45) 0%, transparent 60%);
             animation: shimmerA 11s ease-in-out infinite;
             pointer-events: none;
             z-index: 0;
@@ -60,12 +70,30 @@
             content: '';
             position: fixed; inset: 0;
             background:
-                radial-gradient(ellipse 32% 48% at 42% 78%, rgba(255,255,255,.42) 0%, transparent 70%),
-                radial-gradient(ellipse 58% 36% at 84% 22%, rgba(255,255,255,.32) 0%, transparent 70%),
-                radial-gradient(ellipse 38% 42% at 18% 88%, rgba(255,255,255,.38) 0%, transparent 70%);
+                radial-gradient(ellipse 32% 48% at 42% 78%, rgba(255,255,255,.62) 0%, transparent 65%),
+                radial-gradient(ellipse 58% 36% at 84% 22%, rgba(255,255,255,.55) 0%, transparent 65%),
+                radial-gradient(ellipse 38% 42% at 18% 88%, rgba(255,255,255,.58) 0%, transparent 65%),
+                radial-gradient(ellipse 20% 14% at 62% 42%, rgba(255,255,255,.42) 0%, transparent 58%);
             animation: shimmerB 14s ease-in-out infinite;
             pointer-events: none;
             z-index: 0;
+        }
+
+        /* Lichtreflexe – Ebene 3: scharfe Spiegelreflexe */
+        .water-shimmer {
+            position: fixed; inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse 10% 6%  at 22% 35%, rgba(255,255,255,.92) 0%, rgba(255,255,255,0) 100%),
+                radial-gradient(ellipse 7%  11% at 72% 20%, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 100%),
+                radial-gradient(ellipse 9%  5%  at 48% 68%, rgba(255,255,255,.78) 0%, rgba(255,255,255,0) 100%),
+                radial-gradient(ellipse 5%  9%  at 88% 52%, rgba(255,255,255,.72) 0%, rgba(255,255,255,0) 100%),
+                radial-gradient(ellipse 11% 5%  at 8%  78%, rgba(255,255,255,.68) 0%, rgba(255,255,255,0) 100%),
+                radial-gradient(ellipse 6%  8%  at 58% 15%, rgba(255,255,255,.75) 0%, rgba(255,255,255,0) 100%),
+                linear-gradient(125deg, transparent 25%, rgba(255,255,255,.08) 48%, transparent 72%);
+            animation: shimmerC 8s ease-in-out infinite;
+            mix-blend-mode: screen;
         }
 
         .header {
@@ -82,16 +110,37 @@
         .header-title { font-size: 1.2rem; font-weight: 800; white-space: nowrap; display: flex; align-items: center; gap: .45rem; min-width: 0; overflow: hidden; }
         .header-actions { display: flex; gap: 0.5rem; }
         .header-btn {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.18);
             color: white;
-            border: 1px solid rgba(255,255,255,0.3);
+            border: 1px solid rgba(255,255,255,0.35);
             border-radius: 8px;
             padding: 0.4rem 0.8rem;
             font-size: 0.8rem;
             cursor: pointer;
             font-family: inherit;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(6px);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 1px 4px rgba(0,0,0,0.1);
+            transition: all 0.18s ease;
         }
-        .header-btn:hover { background: rgba(255,255,255,0.3); }
+        .header-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 15% 20%, rgba(255,255,255,0.48) 0%, transparent 45%),
+                radial-gradient(ellipse at 80% 15%, rgba(255,255,255,0.28) 0%, transparent 35%),
+                radial-gradient(ellipse at 10% 80%, rgba(255,255,255,0.12) 0%, transparent 28%),
+                radial-gradient(ellipse at 85% 80%, rgba(255,255,255,0.09) 0%, transparent 24%);
+            pointer-events: none;
+        }
+        .header-btn:hover {
+            background: rgba(255,255,255,0.28);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 3px 10px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+        .header-btn:active { transform: scale(0.96) translateY(1px); }
 
         .nav {
             position: relative; z-index: 10;
@@ -111,9 +160,20 @@
             border-bottom: 3px solid transparent;
             margin-bottom: -2px;
             font-family: inherit;
+            position: relative;
+            overflow: hidden;
+            transition: color 0.18s ease, background 0.18s ease;
         }
-        .nav-tab:hover { color: #c2410c; }
-        .nav-tab.active { color: #c2410c; border-bottom-color: #c2410c; font-weight: 700; }
+        .nav-tab:hover {
+            color: #c2410c;
+            background: linear-gradient(to top, rgba(249,115,22,0.07), transparent);
+        }
+        .nav-tab.active {
+            color: #c2410c;
+            border-bottom-color: #c2410c;
+            font-weight: 700;
+            background: linear-gradient(to top, rgba(249,115,22,0.09), transparent);
+        }
 
         .main { padding: 1.25rem; max-width: 1100px; margin: 0 auto; position: relative; z-index: 1; }
 
@@ -136,14 +196,57 @@
             font-size: 0.88rem;
             font-weight: 600;
             font-family: inherit;
-            transition: opacity 0.15s;
             line-height: 1;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.18s ease;
         }
-        .btn:hover { opacity: 0.85; }
-        .btn-primary { background: #f97316; color: white; }
-        .btn-danger  { background: #dc2626; color: white; }
-        .btn-secondary { background: #e2e8f0; color: #374151; }
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 18% 18%, rgba(255,255,255,0.52) 0%, transparent 48%),
+                radial-gradient(ellipse at 82% 12%, rgba(255,255,255,0.30) 0%, transparent 36%),
+                radial-gradient(ellipse at 8%  82%, rgba(255,255,255,0.13) 0%, transparent 28%),
+                radial-gradient(ellipse at 88% 82%, rgba(255,255,255,0.10) 0%, transparent 24%),
+                linear-gradient(160deg, rgba(255,255,255,0.12) 0%, transparent 55%);
+            border-radius: inherit;
+            pointer-events: none;
+        }
+        .btn:hover  { transform: translateY(-1px); }
+        .btn:active { transform: scale(0.96) translateY(1px) !important; }
+        .btn-primary {
+            background: linear-gradient(150deg, #fb923c 0%, #f97316 55%, #ea6c0a 100%);
+            color: white;
+            box-shadow: 0 3px 12px rgba(249,115,22,0.38), inset 0 1px 0 rgba(255,255,255,0.18);
+        }
+        .btn-primary:hover { box-shadow: 0 6px 18px rgba(249,115,22,0.5), inset 0 1px 0 rgba(255,255,255,0.22); }
+        .btn-danger {
+            background: linear-gradient(150deg, #f87171 0%, #dc2626 100%);
+            color: white;
+            box-shadow: 0 3px 10px rgba(220,38,38,0.32), inset 0 1px 0 rgba(255,255,255,0.16);
+        }
+        .btn-danger:hover { box-shadow: 0 6px 16px rgba(220,38,38,0.44), inset 0 1px 0 rgba(255,255,255,0.2); }
+        .btn-secondary {
+            background: linear-gradient(150deg, #f0f9ff 0%, #dbeafe 100%);
+            color: #1d4ed8;
+            box-shadow: 0 2px 8px rgba(29,78,216,0.1), inset 0 1px 0 rgba(255,255,255,0.9);
+            border: 1px solid rgba(147,197,253,0.6);
+        }
+        .btn-secondary:hover {
+            background: linear-gradient(150deg, #dbeafe 0%, #bfdbfe 100%);
+            box-shadow: 0 4px 14px rgba(29,78,216,0.18), inset 0 1px 0 rgba(255,255,255,0.9);
+        }
         .btn-sm { padding: 0.35rem 0.7rem; font-size: 0.78rem; }
+        .water-ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.4);
+            transform: scale(0);
+            animation: water-ripple 0.65s linear forwards;
+            pointer-events: none;
+        }
 
         .search-input {
             padding: 0.6rem 0.9rem;
@@ -171,15 +274,40 @@
             font-weight: 600;
             cursor: pointer;
             border: 2px solid #e2e8f0;
-            background: white;
+            background: linear-gradient(150deg, #f8fafc 0%, #f1f5f9 100%);
             color: #64748b;
             font-family: inherit;
             position: relative;
+            overflow: hidden;
             white-space: nowrap;
             flex-shrink: 0;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.95);
+            transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
         }
-        .chip:hover { border-color: #94a3b8; }
-        .chip.chip-active { color: white; border-color: transparent; background: #f97316; }
+        .chip::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 22%, rgba(255,255,255,0.55) 0%, transparent 42%),
+                radial-gradient(circle at 78% 18%, rgba(255,255,255,0.28) 0%, transparent 32%),
+                radial-gradient(circle at 12% 78%, rgba(255,255,255,0.10) 0%, transparent 25%),
+                radial-gradient(circle at 85% 80%, rgba(255,255,255,0.08) 0%, transparent 22%);
+            border-radius: inherit;
+            pointer-events: none;
+        }
+        .chip:hover {
+            border-color: #93c5fd;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.95);
+            transform: translateY(-1px);
+        }
+        .chip:active { transform: scale(0.95) !important; }
+        .chip.chip-active {
+            color: white;
+            border-color: transparent;
+            background: linear-gradient(150deg, #fb923c 0%, #f97316 100%);
+            box-shadow: 0 3px 10px rgba(249,115,22,0.38), inset 0 1px 0 rgba(255,255,255,0.2);
+        }
         .chip-today-dot {
             display: inline-block;
             width: 6px; height: 6px;
@@ -810,6 +938,7 @@
     </style>
 </head>
 <body>
+<div class="water-shimmer" aria-hidden="true"></div>
 
 <header class="header">
     <div class="header-title"><img src="icon-192.png" style="height:1.9rem;width:1.9rem;border-radius:50%;flex-shrink:0;object-fit:cover"> Caros Seepferdchen</div>
@@ -1098,6 +1227,10 @@ function save() {
     pushBackup();
 }
 
+
+
+
+
 function exportData() {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -1188,6 +1321,7 @@ function renderBackupList() {
             statusEl.innerHTML = '⚠️ Noch keine Sicherungsdatei gespeichert — bitte einmal „Sicherung speichern".';
             statusEl.style.color = '#c2410c';
         }
+    }
     }
     const wrap = document.getElementById('backup-list');
     if (!wrap) return;
@@ -2071,6 +2205,18 @@ document.querySelectorAll('.modal-bg').forEach(el =>
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') document.querySelectorAll('.modal-bg.open').forEach(m => closeModal(m.id));
 });
+
+document.addEventListener('click', e => {
+    const btn = e.target.closest('.btn, .chip, .header-btn, .nav-tab');
+    if (!btn) return;
+    const ripple = document.createElement('span');
+    const d = Math.max(btn.clientWidth, btn.clientHeight) * 2.5;
+    const rect = btn.getBoundingClientRect();
+    ripple.className = 'water-ripple';
+    ripple.style.cssText = `width:${d}px;height:${d}px;left:${e.clientX-rect.left-d/2}px;top:${e.clientY-rect.top-d/2}px`;
+    btn.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove());
+}, true);
 
 // ── Teilen / PDF ──────────────────────────────────────────────────
 
