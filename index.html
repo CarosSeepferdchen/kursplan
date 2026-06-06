@@ -2415,11 +2415,7 @@ async function speichern() {
 
 load();
 
-(async function initApp() {
-    // Zuerst Festplatte / anderen Gerät prüfen, dann rendern.
-    // Wenn lokal nichts gespeichert ist (z.B. nach Verlauf löschen),
-    // kommt alles innerhalb von ~2 Sekunden automatisch wieder.
-    await syncOnStart();
+(function initApp() {
     renderKurse();
     maybeRemindBackup();
     if ('serviceWorker' in navigator) {
