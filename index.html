@@ -993,19 +993,13 @@
             background: #ef4444; margin-left: 4px; vertical-align: top;
             animation: cloudPulse 1.2s infinite;
         }
-        .backup-toast {
-            position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
-            background: #fff7ed; border: 1px solid #fdba74; color: #9a3412;
-            border-radius: 12px; padding: .8rem 1rem; box-shadow: 0 8px 28px rgba(0,0,0,.16);
-            display: none; align-items: center; gap: .8rem; z-index: 2000;
-            font-size: .9rem; max-width: 92vw;
+        .sync-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+            display: inline-block; vertical-align: middle; margin-right: 2px;
         }
-        .backup-toast.show { display: flex; }
-        .backup-toast button { font-family: inherit; cursor: pointer; }
-        .backup-row {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: .6rem; padding: .55rem .2rem; border-bottom: 1px solid #f1f5f9;
-        }
+        .sync-synced  { background: #4ade80; }
+        .sync-syncing { background: #fbbf24; animation: cloudPulse 1s infinite; }
+        .sync-offline { background: #94a3b8; }
 
     </style>
 </head>
@@ -1183,23 +1177,12 @@
             <button class="btn btn-secondary" onclick="document.getElementById('backup-file-input').click()" style="flex:1">📂 Sicherung laden</button>
         </div>
         <input type="file" id="backup-file-input" accept="application/json,.json" style="display:none" onchange="importData(event)">
-        <div style="font-size:.8rem;color:#64748b;margin-bottom:.5rem;padding-top:.9rem;border-top:1px solid #f1f5f9">
-            <strong>Automatische Sicherungen</strong> — falls du aus Versehen etwas löschst, hier mit einem Klick zurückholen:
-        </div>
-        <div id="backup-list" style="max-height:240px;overflow-y:auto"></div>
     </div>
 </div>
 
-<!-- Erinnerung -->
-<div class="backup-toast" id="backup-toast">
-    <span>🛟 Deine letzte Sicherung ist eine Weile her.</span>
-    <button class="btn btn-primary btn-sm" onclick="hideToast();openBackupModal()">Jetzt sichern</button>
-    <button onclick="hideToast()" style="background:none;border:none;color:#9a3412;font-size:1.1rem">×</button>
-</div>
 
 <script>
 const STORAGE_KEY = 'schwimmtrainer_v1';
-const BACKUP_KEY = 'schwimmtrainer_backups';      // automatische Schutz-Historie
 const LASTEXPORT_KEY = 'schwimmtrainer_lastexport'; // Zeitpunkt der letzten Datei-Sicherung
 
 const WOCHENTAGE = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
@@ -1334,7 +1317,6 @@ function load() {
 function save() {
     state._savedAt = Date.now();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    pushBackup();
 }
 
 function exportData() {
@@ -1356,7 +1338,6 @@ function importData(event) {
         try {
             const imp = JSON.parse(e.target.result);
             if (!imp.kinder) throw new Error();
-            pushBackup();               // aktuellen Stand vorher sichern
             state = normalizeState(imp);
             ensureStufen();
             save(); renderKurse();
@@ -1368,48 +1349,6 @@ function importData(event) {
     event.target.value = '';
 }
 
-// ── Automatische Schutz-Historie ──────────────────────────────────
-function pushBackup() {
-    try {
-        const snapshot = JSON.stringify({ ...state, dateien: {} });  // Bilder/Dateien nicht mitspeichern (Platz)
-        const sig = (state.kinder?.length || 0) + '/' + (state.kurse?.length || 0) + '/' + (state.badges?.length || 0);
-        let list = [];
-        try { list = JSON.parse(localStorage.getItem(BACKUP_KEY) || '[]'); } catch(e) { list = []; }
-        const now = Date.now();
-        const last = list[0];
-        if (last && last.data === snapshot) return;                  // nichts geändert
-        const entry = { id: now + '-' + Math.random().toString(36).slice(2, 8), ts: now, data: snapshot, sig };
-        // Nur reine Kleinänderungen (gleiche Anzahl Kinder/Kurse/Stufen) innerhalb 30 Min zusammenfassen.
-        // Hinzufügen/Löschen ändert die Anzahl → immer eigener Wiederherstellungspunkt.
-        if (last && last.sig === sig && (now - last.ts) < 30 * 60 * 1000) list[0] = entry;
-        else list.unshift(entry);
-        if (list.length > 30) list = list.slice(0, 30);
-        // Bei vollem Speicher: älteste Sicherungen verwerfen und erneut versuchen
-        for (let tries = 0; tries < 25; tries++) {
-            try { localStorage.setItem(BACKUP_KEY, JSON.stringify(list)); return; }
-            catch(e) { if (list.length <= 3) return; list.pop(); }
-        }
-    } catch(e) { /* App läuft normal weiter */ }
-}
-
-function restoreBackup(id) {
-    let list = [];
-    try { list = JSON.parse(localStorage.getItem(BACKUP_KEY) || '[]'); } catch(e) { return; }
-    const entry = list.find(e => e.id === id);
-    if (!entry) return;
-    if (!confirm('Diesen früheren Stand wiederherstellen?\n\nDer aktuelle Stand wird vorher automatisch gesichert, du kannst also zurück.')) return;
-    pushBackup();
-    try {
-        const restored = JSON.parse(entry.data);
-        const dateien = state.dateien || {};
-        state = normalizeState(restored);
-        state.dateien = dateien;                  // vorhandene Dateien behalten
-        ensureStufen();
-        expandedKindId = null;
-        save(); renderKurse(); renderBackupList();
-        alert('Stand wiederhergestellt ✓');
-    } catch(e) { alert('Wiederherstellen fehlgeschlagen.'); }
-}
 
 function openBackupModal() { renderBackupList(); openModal('modal-backup'); }
 
@@ -1428,26 +1367,6 @@ function renderBackupList() {
             statusEl.style.color = '#c2410c';
         }
     }
-    const wrap = document.getElementById('backup-list');
-    if (!wrap) return;
-    let list = [];
-    try { list = JSON.parse(localStorage.getItem(BACKUP_KEY) || '[]'); } catch(e) {}
-    if (!list.length) {
-        wrap.innerHTML = '<div style="color:#94a3b8;font-size:.85rem;padding:.5rem 0">Noch keine automatischen Sicherungen vorhanden.</div>';
-        return;
-    }
-    wrap.innerHTML = list.map(e => {
-        const d = new Date(e.ts);
-        const datum = d.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit' }) + ' ' +
-                      d.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' });
-        let info = '';
-        try { const s = JSON.parse(e.data); info = (s.kinder?.length || 0) + ' Kinder · ' + (s.kurse?.length || 0) + ' Kurse'; } catch(x) {}
-        return '<div class="backup-row">' +
-                 '<div><div style="font-weight:600;font-size:.88rem">' + datum + '</div>' +
-                 '<div style="font-size:.72rem;color:#94a3b8">' + info + '</div></div>' +
-                 '<button class="btn btn-secondary btn-sm" onclick="restoreBackup(\'' + e.id + '\')">Wiederherstellen</button>' +
-               '</div>';
-    }).join('');
 }
 
 function backupOverdue() {
@@ -1458,20 +1377,9 @@ function hasEchteData() {
     // Nur echte Daten zählen — mindestens 1 Kind eingetragen
     return (state.kinder?.length || 0) > 0;
 }
-function appAltGenug() {
-    // Erst nach 3 Tagen Nutzung erinnern — nicht gleich beim ersten Öffnen
-    const savedAt = state._savedAt;
-    return savedAt && (Date.now() - savedAt) > 3 * 86400000;
-}
 function updateBackupWarnDot() {
     const dot = document.getElementById('backup-warn-dot');
     if (dot) dot.style.display = (backupOverdue() && hasEchteData()) ? 'inline-block' : 'none';
-}
-function showToast() { document.getElementById('backup-toast')?.classList.add('show'); }
-function hideToast() { document.getElementById('backup-toast')?.classList.remove('show'); }
-function maybeRemindBackup() {
-    updateBackupWarnDot();
-    if (backupOverdue() && hasEchteData() && appAltGenug()) setTimeout(showToast, 1200);
 }
 
 // ── Utils ─────────────────────────────────────────────────────────
@@ -2359,6 +2267,18 @@ function teilen() {
             return `<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:${st.farbe};opacity:${opacity};font-size:6.5px;font-weight:800;color:white;margin-right:2px;flex-shrink:0">${label}</span>`;
         }).join('');
 
+        // Erhaltene Abzeichen mit Datum
+        const erhalten = state.badges.filter(st => {
+            const p = getStufenProgress(kind, st.id);
+            return p.total > 0 && p.done === p.total;
+        });
+        const abzeichenZeile = erhalten.length
+            ? `<div style="font-size:9px;color:#475569;margin-bottom:4px;background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:3px 7px">🏅 <b>Abzeichen erhalten:</b> ${erhalten.map(st => {
+                  const d = ((kind.progress || {})[st.id] || {})['_abzeichen_datum'] || '';
+                  return `<span style="font-weight:700;color:${st.farbe}">${esc(st.name)}</span>${d ? ` <span style="color:#0891b2;font-size:8px">(${d})</span>` : ''}`;
+              }).join(' &middot; ')}</div>`
+            : `<div style="font-size:9px;color:#94a3b8;font-style:italic;margin-bottom:4px">Noch keine Abzeichen erhalten</div>`;
+
         // Aufgaben der aktuellen Stufe
         const gesGruppen = new Set();
         let aufgabenHTML = '';
@@ -2387,6 +2307,7 @@ function teilen() {
         return `<div style="border-bottom:1px solid #f0f0f0;padding:7px 10px;page-break-inside:avoid">
             <div style="font-size:12px;font-weight:700;margin-bottom:4px">${esc(kind.name)}</div>
             <div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px">${bubbles}</div>
+            ${abzeichenZeile}
             <div style="font-size:9px;color:#475569;font-weight:600;margin-bottom:3px">${stufenLabel}</div>
             <div style="padding-left:6px">${aufgabenHTML}</div>
         </div>`;
@@ -2422,6 +2343,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;p
 @media print{.topbar{display:none}body{padding:0.7cm}}
 </style></head><body>
 <div class="topbar">
+    <button onclick="window.close()" style="background:none;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 13px;font-size:13px;cursor:pointer;font-family:inherit;color:#64748b">← Zurück</button>
     <span style="font-size:13px;font-weight:800;color:#c2410c">Caros Seepferdchen &mdash; ${esc(tagName)}</span>
     <button class="save-btn" onclick="speichern()">In Dateien sichern</button>
 </div>
@@ -2505,9 +2427,9 @@ load();
 
 (function initApp() {
     renderKurse();
-    maybeRemindBackup();
+    updateBackupWarnDot();
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
 }());
 </script>
