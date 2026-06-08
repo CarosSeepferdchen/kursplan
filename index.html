@@ -2282,6 +2282,7 @@ function teilen() {
         // Aufgaben der aktuellen Stufe
         const gesGruppen = new Set();
         let aufgabenHTML = '';
+        const noteHTML = txt => txt ? `<div style="font-size:8px;color:#92400e;padding:0 0 1.5px 14px">📝 ${esc(txt)}</div>` : '';
         aktStufe.anforderungen.forEach(anf => {
             if (anf.entwederOder) {
                 if (gesGruppen.has(anf.entwederOder)) return;
@@ -2291,11 +2292,13 @@ function teilen() {
                     const d = prog[opt.id + '_datum'] || '';
                     if (i > 0) aufgabenHTML += `<div style="font-size:7.5px;color:#bbb;padding:1px 0">— oder —</div>`;
                     aufgabenHTML += `<div style="font-size:9px;padding:1.5px 0;color:${done ? '#16a34a' : '#aaa'}">${done ? '✓' : '○'} ${esc(opt.text)}${d ? ` <span style="color:#0891b2;font-size:8px">${d}</span>` : ''}</div>`;
+                    aufgabenHTML += noteHTML(prog[opt.id + '_note'] || '');
                 });
             } else {
                 const done = !!prog[anf.id];
                 const d = prog[anf.id + '_datum'] || '';
                 aufgabenHTML += `<div style="font-size:9px;padding:1.5px 0;color:${done ? '#16a34a' : '#aaa'}">${done ? '✓' : '○'} ${esc(anf.text)}${d ? ` <span style="color:#0891b2;font-size:8px">${d}</span>` : ''}</div>`;
+                aufgabenHTML += noteHTML(prog[anf.id + '_note'] || '');
             }
         });
 
@@ -2304,12 +2307,19 @@ function teilen() {
             ? `<b style="color:#ca8a04">Alle Abzeichen erreicht ✓</b>`
             : `<b>${esc(aktStufe.name)}</b> <span style="color:#94a3b8">${aktP.done}/${aktP.total}</span>${abzDatum ? ` &middot; <span style="color:#0891b2">Abzeichen: ${abzDatum}</span>` : ''}`;
 
+        // Allgemeine Anmerkung zum Kind
+        const anmerkung = (kind.anmerkung || '').trim();
+        const anmerkungZeile = anmerkung
+            ? `<div style="font-size:8.5px;color:#334155;background:#f1f5f9;border-left:3px solid #94a3b8;padding:3px 7px;margin-top:5px;border-radius:3px">📝 <b>Anmerkung:</b> ${esc(anmerkung)}</div>`
+            : '';
+
         return `<div style="border-bottom:1px solid #f0f0f0;padding:7px 10px;page-break-inside:avoid">
             <div style="font-size:12px;font-weight:700;margin-bottom:4px">${esc(kind.name)}</div>
             <div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px">${bubbles}</div>
             ${abzeichenZeile}
             <div style="font-size:9px;color:#475569;font-weight:600;margin-bottom:3px">${stufenLabel}</div>
             <div style="padding-left:6px">${aufgabenHTML}</div>
+            ${anmerkungZeile}
         </div>`;
     }
 
