@@ -148,7 +148,11 @@
             display: flex;
             border-bottom: 2px solid #e2e8f0;
             padding: 0 1.5rem;
+            overflow-x: auto;            /* bei vielen Tabs scrollbar statt gequetscht */
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;       /* Scrollbalken ausblenden (Firefox) */
         }
+        .nav::-webkit-scrollbar { display: none; }   /* Scrollbalken ausblenden (Safari/Chrome) */
         .nav-tab {
             padding: 0.85rem 1.2rem;
             border: none;
@@ -163,6 +167,8 @@
             position: relative;
             overflow: hidden;
             transition: color 0.18s ease, background 0.18s ease;
+            flex-shrink: 0;
+            white-space: nowrap;
         }
         .nav-tab:hover {
             color: #c2410c;
@@ -807,17 +813,30 @@
             font-size: 1.2rem; font-weight: 400;
         }
         .abschnitt-add:hover { border-color: #64748b; color: #374151; transform: scale(1.1); }
+        /* Abschnitte bearbeiten / löschen */
+        .abschnitt-edit { font-size: 1rem; }
+        .abschnitt-edit.aktiv-edit { border-color: #16a34a; color: #16a34a; background: #f0fdf4; }
+        .abschnitt-wrap { position: relative; display: inline-flex; flex-shrink: 0; }
+        .abschnitt-del {
+            position: absolute; top: -5px; right: -5px;
+            width: 19px; height: 19px;
+            background: #dc2626; color: white;
+            border-radius: 50%;
+            font-size: 0.95rem; line-height: 18px; font-weight: 700;
+            text-align: center; cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            z-index: 3;
+        }
+        .abschnitt-del:hover { background: #b91c1c; transform: scale(1.15); }
+        @keyframes abschnittWackel { 0%,100%{transform:rotate(-2.5deg)} 50%{transform:rotate(2.5deg)} }
+        .abschnitt-wrap.wackel .abschnitt-bubble { animation: abschnittWackel 0.45s ease-in-out infinite; }
         .abschnitt-content-title {
             font-size: 0.75rem; font-weight: 700;
             color: #475569; text-transform: uppercase;
             letter-spacing: 0.05em; margin-bottom: 0.5rem;
         }
 
-        /* Anwesenheitsliste */
-        .attendance-section {
-            border-top: 1px solid #eef2f7;
-            margin-top: 0.8rem; padding-top: 0.75rem;
-        }
+        /* Anwesenheitsliste (Anwesenheit-Tab) + Dateibereich-Titel */
         .attendance-title {
             font-size: 0.75rem; font-weight: 700;
             color: #475569; text-transform: uppercase;
@@ -832,9 +851,39 @@
         .attendance-cb { width: 17px; height: 17px; accent-color: #16a34a; cursor: pointer; flex-shrink: 0; }
         .attendance-name { font-size: 0.85rem; color: #374151; }
         .attendance-empty { font-size: 0.8rem; color: #94a3b8; font-style: italic; padding: 0.2rem 0.4rem; }
-        .attendance-summary {
-            font-size: 0.72rem; color: #64748b;
-            margin-top: 0.35rem; padding: 0 0.4rem;
+
+        /* Anwesenheit-Tab: Datumsleiste */
+        .anw-datebar {
+            display: flex; align-items: center; gap: 0.5rem;
+            flex-wrap: wrap; margin-bottom: 1rem;
+        }
+        .anw-dateinput {
+            padding: 0.4rem 0.6rem;
+            border: 1.5px solid #bae6fd;
+            border-radius: 9px;
+            font-size: 0.9rem; font-family: inherit;
+            color: #0369a1; background: #f0f9ff;
+            cursor: pointer;
+        }
+        .anw-dateinput:focus { outline: none; border-color: #38bdf8; background: white; }
+        .anw-nav {
+            width: 34px; height: 34px;
+            border: 1.5px solid #bae6fd;
+            border-radius: 9px;
+            background: #f0f9ff; color: #0369a1;
+            font-size: 1.3rem; line-height: 1; font-weight: 700;
+            cursor: pointer; flex-shrink: 0;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .anw-nav:hover { background: #e0f2fe; border-color: #38bdf8; }
+        .anw-weekday {
+            font-size: 0.9rem; font-weight: 700; color: #0c4a6e;
+            margin-left: 0.25rem;
+        }
+        .anw-count {
+            font-size: 0.78rem; font-weight: 700; color: #0369a1;
+            background: #e0f2fe; padding: 0.2rem 0.6rem;
+            border-radius: 999px; white-space: nowrap; flex-shrink: 0;
         }
 
         /* Dateibereich */
@@ -918,6 +967,10 @@
             .header-btn { padding: 0.3rem 0.55rem; font-size: 0.72rem; white-space: nowrap; }
             /* "Drucken / PDF" auf Mobil ausblenden — weniger wichtig */
             .header-btn-pdf { display: none; }
+
+            /* ── Navigation kompakter ─────────────────────────── */
+            .nav { padding: 0 0.5rem; }
+            .nav-tab { padding: 0.75rem 0.7rem; font-size: 0.85rem; }
 
             /* ── Haupt-Layout ─────────────────────────────────── */
             .main { padding: 0.85rem; }
@@ -1041,6 +1094,7 @@
 
 <nav class="nav">
     <button class="nav-tab active" onclick="showTab('kurse')">Kurse</button>
+    <button class="nav-tab" onclick="showTab('anwesenheit')">Anwesenheit</button>
     <button class="nav-tab" onclick="showTab('training')">Training</button>
     <button class="nav-tab" onclick="showTab('abzeichen')">Abzeichen</button>
 </nav>
@@ -1053,6 +1107,17 @@
         </div>
         <div class="chips-row" id="day-chips"></div>
         <div id="kurse-list"></div>
+    </div>
+
+    <div id="tab-anwesenheit" hidden>
+        <div class="anw-datebar">
+            <button class="anw-nav" onclick="shiftAnwDatum(-1)" title="Tag zurück">‹</button>
+            <input type="date" id="anw-datum" class="anw-dateinput" onchange="setAnwDatum(this.value)">
+            <button class="anw-nav" onclick="shiftAnwDatum(1)" title="Tag vor">›</button>
+            <button class="btn btn-secondary btn-sm" onclick="setAnwDatum('')">Heute</button>
+            <span class="anw-weekday" id="anw-weekday"></span>
+        </div>
+        <div id="anwesenheit-list"></div>
     </div>
 
     <div id="tab-training" hidden>
@@ -1259,11 +1324,13 @@ const STUFEN_DEFAULT = [
 let state = { kinder: [], badges: [], kurse: [], wochenplaene: {}, anwesenheit: {} };
 let editKindId = null;
 let selectedAbschnitt = {};  // kursId → aktuell angeklickte Abschnittsnummer
+let abschnittEdit = {};      // kursId → ist der Lösch-/Bearbeiten-Modus aktiv?
 let editKursId = null;
 let editStufeId = null;
 let currentDay = HEUTE;          // 0-6 oder 'alle'
 let expandedKindId = null;       // welches Kind ist aufgeklappt
 let logbookPage = null;          // welche Stufe wird im Logbuch gezeigt
+let anwesenheitDatum = null;     // gewähltes Datum (YYYY-MM-DD) im Anwesenheit-Tab
 
 // ── Storage ──────────────────────────────────────────────────────
 
@@ -1435,13 +1502,15 @@ function kinderOhneKurs() {
 // ── Tabs ──────────────────────────────────────────────────────────
 
 function showTab(tab) {
-    const idx = tab === 'kurse' ? 0 : tab === 'training' ? 1 : 2;
+    const idx = ['kurse', 'anwesenheit', 'training', 'abzeichen'].indexOf(tab);
     document.querySelectorAll('.nav-tab').forEach((b, i) => b.classList.toggle('active', i === idx));
-    document.getElementById('tab-kurse').hidden     = tab !== 'kurse';
-    document.getElementById('tab-training').hidden  = tab !== 'training';
-    document.getElementById('tab-abzeichen').hidden = tab !== 'abzeichen';
-    if (tab === 'training')  renderTraining();
-    if (tab === 'abzeichen') renderStufen();
+    document.getElementById('tab-kurse').hidden       = tab !== 'kurse';
+    document.getElementById('tab-anwesenheit').hidden = tab !== 'anwesenheit';
+    document.getElementById('tab-training').hidden    = tab !== 'training';
+    document.getElementById('tab-abzeichen').hidden   = tab !== 'abzeichen';
+    if (tab === 'anwesenheit') renderAnwesenheit();
+    if (tab === 'training')    renderTraining();
+    if (tab === 'abzeichen')   renderStufen();
 }
 
 // ── KW-Hilfsfunktionen ────────────────────────────────────────────
@@ -1487,6 +1556,47 @@ function selectAbschnitt(kursId, nr) {
     if (el) el.outerHTML = renderKursTrainingCard(kursId);
 }
 
+function toggleAbschnittEdit(kursId) {
+    abschnittEdit[kursId] = !abschnittEdit[kursId];
+    const el = document.getElementById('training-card-' + kursId);
+    if (el) el.outerHTML = renderKursTrainingCard(kursId);
+}
+
+function deleteAbschnitt(kursId, nr) {
+    const count = state.abschnittCount[kursId] || 0;
+    if (nr < 1 || nr > count) return;
+    if (!confirm(`Abschnitt ${nr} wirklich löschen?\nTrainingsplan und Dateien dieses Abschnitts werden entfernt.`)) return;
+
+    // Daten des gelöschten Abschnitts weg, höhere Abschnitte rücken eins nach unten
+    const rueckeNach = (obj) => {
+        const m = obj && obj[kursId];
+        if (!m) return;
+        delete m['abschnitt-' + nr];
+        for (let i = nr + 1; i <= count; i++) {
+            if (m['abschnitt-' + i] !== undefined) m['abschnitt-' + (i - 1)] = m['abschnitt-' + i];
+            else delete m['abschnitt-' + (i - 1)];
+            delete m['abschnitt-' + i];
+        }
+    };
+    rueckeNach(state.wochenplaene);
+    rueckeNach(state.dateien);
+    rueckeNach(state.anwesenheit);
+
+    const neuCount = count - 1;
+    state.abschnittCount[kursId] = neuCount;
+
+    // Auswahl anpassen (gelöschten → benachbarten, höhere rücken nach)
+    let sel = selectedAbschnitt[kursId] || 1;
+    if (neuCount === 0) { sel = null; abschnittEdit[kursId] = false; }
+    else if (sel === nr) sel = Math.min(nr, neuCount);
+    else if (sel > nr) sel = sel - 1;
+    selectedAbschnitt[kursId] = sel;
+
+    save();
+    const el = document.getElementById('training-card-' + kursId);
+    if (el) el.outerHTML = renderKursTrainingCard(kursId);
+}
+
 // ── Trainingsplan-Tab ─────────────────────────────────────────────
 
 function renderKursTrainingCard(kursId) {
@@ -1497,15 +1607,27 @@ function renderKursTrainingCard(kursId) {
     const sel = selectedAbschnitt[kursId] || (count > 0 ? 1 : null);
 
     // Abschnittsblasen
+    const editing = !!abschnittEdit[kursId];
     let blasen = '';
     for (let i = 1; i <= count; i++) {
         const aktiv = sel === i;
-        blasen += `<button class="abschnitt-bubble ${aktiv ? 'aktiv' : ''}"
-            style="${aktiv ? 'background:' + cf.farbe + ';box-shadow:0 2px 8px ' + cf.farbe + '55' : ''}"
-            onclick="selectAbschnitt('${kursId}',${i})">${i}</button>`;
+        const del = editing
+            ? `<span class="abschnitt-del" onclick="event.stopPropagation();deleteAbschnitt('${kursId}',${i})" title="Abschnitt ${i} löschen">×</span>`
+            : '';
+        blasen += `<span class="abschnitt-wrap ${editing ? 'wackel' : ''}">
+            <button class="abschnitt-bubble ${aktiv ? 'aktiv' : ''}"
+                style="${aktiv ? 'background:' + cf.farbe + ';box-shadow:0 2px 8px ' + cf.farbe + '55' : ''}"
+                onclick="selectAbschnitt('${kursId}',${i})">${i}</button>
+            ${del}
+        </span>`;
     }
-    if (count < 12) {
+    if (count < 12 && !editing) {
         blasen += `<button class="abschnitt-bubble abschnitt-add" onclick="addAbschnitt('${kursId}')" title="Abschnitt hinzufügen">+</button>`;
+    }
+    if (count > 0) {
+        blasen += `<button class="abschnitt-bubble abschnitt-edit ${editing ? 'aktiv-edit' : ''}"
+            onclick="toggleAbschnittEdit('${kursId}')"
+            title="${editing ? 'Fertig' : 'Abschnitte entfernen'}">${editing ? '✓' : '✏'}</button>`;
     }
 
     // Inhalt des gewählten Abschnitts
@@ -1513,16 +1635,6 @@ function renderKursTrainingCard(kursId) {
     if (sel) {
         const key = 'abschnitt-' + sel;
         const planText = (state.wochenplaene[kursId] || {})[key] || '';
-        const kinder = kinderImKurs(kursId);
-        const anwObj = (state.anwesenheit[kursId] || {})[key] || {};
-        const anwesend = kinder.filter(k => anwObj[k.id]).length;
-        const anwHTML = kinder.length
-            ? kinder.map(k => `<label class="attendance-row">
-                <input type="checkbox" class="attendance-cb" ${anwObj[k.id] ? 'checked' : ''}
-                    onchange="toggleAnwesenheit('${kursId}','${key}','${k.id}',this.checked)">
-                <span class="attendance-name">${esc(k.name)}</span>
-              </label>`).join('')
-            : `<div class="attendance-empty">Noch keine Kinder in diesem Kurs</div>`;
         inhalt = `<div style="padding:0.75rem 0.85rem 0.85rem">
             <div class="abschnitt-content-title" style="color:${cf.farbe}">Abschnitt ${sel}</div>
             <div style="display:flex;gap:0.75rem;align-items:flex-start;flex-wrap:wrap">
@@ -1533,11 +1645,6 @@ function renderKursTrainingCard(kursId) {
                     <div class="training-saved" id="tp-saved-${kursId}"></div>
                 </div>
                 <div style="flex:1;min-width:160px">${dateiSectionHTML(kursId, key, cf)}</div>
-            </div>
-            <div class="attendance-section">
-                <div class="attendance-title">Anwesenheit Abschnitt ${sel}</div>
-                ${anwHTML}
-                ${kinder.length ? `<div class="attendance-summary" id="attendance-sum-${kursId}-${key}">${anwesend} von ${kinder.length} anwesend</div>` : ''}
             </div>
         </div>`;
     } else {
@@ -1565,6 +1672,70 @@ function renderTraining() {
         return;
     }
     wrap.innerHTML = kurse.map(k => renderKursTrainingCard(k.id)).join('');
+}
+
+// ── Anwesenheit-Tab (pro echtem Datum) ────────────────────────────
+
+function isoAnwHeute() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function setAnwDatum(v) {
+    anwesenheitDatum = v || isoAnwHeute();
+    renderAnwesenheit();
+}
+
+function shiftAnwDatum(delta) {
+    const d = new Date((anwesenheitDatum || isoAnwHeute()) + 'T00:00:00');
+    d.setDate(d.getDate() + delta);
+    setAnwDatum(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+}
+
+function renderAnwesenheit() {
+    if (!anwesenheitDatum) anwesenheitDatum = isoAnwHeute();
+    const d = new Date(anwesenheitDatum + 'T00:00:00');
+    const tag = (d.getDay() + 6) % 7;                 // JS So=0 → App Mo=0
+    const heuteISO = isoAnwHeute();
+
+    // Datumsleiste aktualisieren
+    const inp = document.getElementById('anw-datum');
+    if (inp) inp.value = anwesenheitDatum;
+    const wd = document.getElementById('anw-weekday');
+    if (wd) wd.textContent = WOCHENTAGE[tag] + ', ' + fmtD(d) + (anwesenheitDatum === heuteISO ? ' (heute)' : '');
+
+    const wrap = document.getElementById('anwesenheit-list');
+    const kurse = kurseAmTag(tag);
+    if (!kurse.length) {
+        wrap.innerHTML = `<div class="empty-state"><h3>Kein Kurs am ${WOCHENTAGE[tag]}</h3><p>An diesem Wochentag findet kein Kurs statt. Wähle ein anderes Datum.</p></div>`;
+        return;
+    }
+
+    const key = 'd-' + anwesenheitDatum;
+    wrap.innerHTML = kurse.map(kurs => {
+        const cf = kursFarbe(kurs.id);
+        const kinder = kinderImKurs(kurs.id);
+        const anwObj = (state.anwesenheit[kurs.id] || {})[key] || {};
+        const anwesend = kinder.filter(k => anwObj[k.id]).length;
+        const zeit = kurs.von ? `<span class="kurs-time-badge" style="background:${cf.hell};color:${cf.farbe}">${kurs.von}${kurs.bis ? '–'+kurs.bis : ''}</span>` : '';
+        const rows = kinder.length
+            ? kinder.map(k => `<label class="attendance-row">
+                <input type="checkbox" class="attendance-cb" ${anwObj[k.id] ? 'checked' : ''}
+                    onchange="toggleAnwesenheit('${kurs.id}','${key}','${k.id}',this.checked)">
+                <span class="attendance-name">${esc(k.name)}</span>
+              </label>`).join('')
+            : `<div class="attendance-empty">Noch keine Kinder in diesem Kurs</div>`;
+        return `<div class="kurs-card" style="border-left-color:${cf.farbe};margin-bottom:1.1rem">
+            <div class="kurs-card-head" style="background:${cf.hell}">
+                <div class="kurs-head-left">
+                    <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}</div>
+                    <div class="kurs-sub">${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}</div>
+                </div>
+                ${kinder.length ? `<div class="anw-count" id="attendance-sum-${kurs.id}-${key}">${anwesend} von ${kinder.length} anwesend</div>` : ''}
+            </div>
+            <div style="padding:0.6rem 0.85rem 0.85rem">${rows}</div>
+        </div>`;
+    }).join('');
 }
 
 // ── Datei-Upload ──────────────────────────────────────────────────
