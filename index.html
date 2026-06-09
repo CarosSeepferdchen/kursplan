@@ -519,6 +519,28 @@
         .lb-note:focus { outline: none; border-color: #f97316; background: white; }
         .lb-note::placeholder { color: #cbd5e1; }
         .lb-cb { width: 22px; height: 22px; min-width: 22px; cursor: pointer; accent-color: #16a34a; flex-shrink: 0; }
+        /* Sticker-Tropfen: leere Kreise, die per Klick zu Wassertropfen werden */
+        .lb-sticker { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+        .lb-drop {
+            width: 16px; height: 16px;
+            padding: 0;
+            border: 1.5px solid #bae6fd;
+            background: #f0f9ff;
+            border-radius: 50%;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform 0.12s ease, border-color 0.12s ease;
+        }
+        .lb-drop:not(.filled):hover { transform: scale(1.18); border-color: #38bdf8; }
+        .lb-drop.filled {
+            border: none;
+            background: radial-gradient(circle at 32% 26%, #e0f2fe 0%, #7dd3fc 38%, #38bdf8 65%, #0284c7 100%);
+            /* Wassertropfen-Form: oben spitz, unten rund */
+            border-radius: 0 50% 50% 50%;
+            transform: rotate(45deg);
+            box-shadow: inset -1px -1px 2px rgba(2,132,199,0.45), 0 1px 2px rgba(2,132,199,0.35);
+        }
+        .lb-drop.filled:hover { transform: rotate(45deg) scale(1.15); }
         .lb-anmerkung {
             width: 100%;
             padding: 0.6rem 0.75rem;
@@ -911,6 +933,8 @@
             .lb-note { flex: 0 0 65px; font-size: 0.75rem; padding: 0.2rem 0.3rem; }
             .lb-task { padding: 0.55rem 0.6rem; gap: 0.4rem; }
             .lb-task-text { font-size: 0.83rem; }
+            .lb-sticker { gap: 3px; }
+            .lb-drop { width: 14px; height: 14px; }
 
             /* ── Toolbar ──────────────────────────────────────── */
             .toolbar { gap: 0.5rem; }
@@ -1809,8 +1833,10 @@ function logbookInnerHTML(kind) {
                     ? `<span class="lb-datum" id="${trigId}" onclick="event.stopPropagation();showDatumInput('${kind.id}','${stufe.id}','${anf.id}','${trigId}')">${datum}</span>`
                     : `<span class="lb-datum-trigger trainer-only" id="${trigId}" onclick="event.stopPropagation();showDatumInput('${kind.id}','${stufe.id}','${anf.id}','${trigId}')"></span>`)
                 : '';
+            const sticker = prog[anf.id + '_sticker'] || 0;
             return `<div class="lb-task ${done ? 'lb-done' : ''}" id="lbtask-${anf.id}" onclick="event.stopPropagation()">
                 <span class="lb-task-text" onclick="toggleAufgabe('${kind.id}','${stufe.id}','${anf.id}',${!done})">${esc(anf.text)}${datumEl}</span>
+                <div class="lb-sticker" id="sticker-${anf.id}">${stickerDropsHTML(kind.id, stufe.id, anf.id, sticker)}</div>
                 <input class="lb-note" type="text" value="${esc(note)}" placeholder="Notiz…" ${(trainerMode || editorMode) ? '' : 'readonly'} onclick="event.stopPropagation()" onblur="saveNotiz('${kind.id}','${stufe.id}','${anf.id}',this.value)">
                 <input class="lb-cb" type="checkbox" ${done ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleAufgabe('${kind.id}','${stufe.id}','${anf.id}',this.checked)">
             </div>`;
@@ -1850,6 +1876,28 @@ function saveNotiz(kindId, stufeId, anfId, value) {
     if (value.trim()) kind.progress[stufeId][key] = value.trim();
     else delete kind.progress[stufeId][key];
     save();
+}
+
+// Sticker-Tropfen: 3 Kreise pro Aufgabe, gefüllte sehen aus wie Wassertropfen
+function stickerDropsHTML(kindId, stufeId, anfId, count) {
+    return [1, 2, 3].map(n =>
+        `<button type="button" class="lb-drop ${n <= count ? 'filled' : ''}" title="Sticker ${n} von 3" onclick="event.stopPropagation();setSticker('${kindId}','${stufeId}','${anfId}',${n})"></button>`
+    ).join('');
+}
+
+function setSticker(kindId, stufeId, anfId, n) {
+    const kind = kindObj(kindId); if (!kind) return;
+    if (!kind.progress) kind.progress = {};
+    if (!kind.progress[stufeId]) kind.progress[stufeId] = {};
+    const key = anfId + '_sticker';
+    const cur = kind.progress[stufeId][key] || 0;
+    const next = (cur === n) ? n - 1 : n;   // erneut auf den letzten klicken → einen weniger
+    if (next > 0) kind.progress[stufeId][key] = next;
+    else delete kind.progress[stufeId][key];
+    save();
+    // nur die betroffene Tropfen-Reihe neu zeichnen (Notiz-Fokus bleibt erhalten)
+    const box = document.getElementById('sticker-' + anfId);
+    if (box) box.innerHTML = stickerDropsHTML(kindId, stufeId, anfId, next);
 }
 
 function toggleKind(id) {
