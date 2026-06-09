@@ -754,32 +754,6 @@
             pointer-events: none;
         }
 
-        /* Entweder/Oder-Gruppe im Logbuch */
-        .lb-eo-group {
-            border: 1.5px solid #ddd6fe;
-            border-radius: 11px;
-            overflow: hidden;
-            margin-bottom: 0.35rem;
-            background: #faf5ff;
-        }
-        .lb-eo-group .lb-task {
-            background: transparent;
-            border: none;
-            border-radius: 0;
-            margin-bottom: 0;
-        }
-        .lb-eo-group .lb-task:hover { background: rgba(124,58,237,0.05); }
-        .lb-eo-group .lb-task.lb-done { background: #f0fdf4; }
-        .lb-eo-divider {
-            text-align: center;
-            font-size: 0.68rem;
-            font-weight: 800;
-            color: #7c3aed;
-            background: #ede9fe;
-            padding: 0.18rem;
-            letter-spacing: 0.08em;
-        }
-
         /* Abschnittsblasen */
         .abschnitt-bar {
             display: flex;
@@ -1236,8 +1210,8 @@ const STUFEN_DEFAULT = [
         {id:'se3', text:'Rückenschwimmen ohne Hilfsmittel'}
     ] },
     { id: 'bronze',       name: 'Bronze',       farbe: '#b45309', anforderungen: [
-        {id:'br1', text:'Sprung kopfwärts vom Beckenrand / Startblock', entwederOder:'br_sprung'},
-        {id:'br2', text:'Verschiedene Sprünge vom 1m Brett',             entwederOder:'br_sprung'},
+        {id:'br1', text:'Sprung kopfwärts vom Beckenrand / Startblock'},
+        {id:'br2', text:'Verschiedene Sprünge vom 1m Brett'},
         {id:'br3', text:'Mindestens 200m schwimmen in 15 Minuten'},
         {id:'br4', text:'Tauchen aus einer Wassertiefe von 2m'},
         {id:'br5', text:'Baderegeln'}
@@ -1289,6 +1263,8 @@ function ensureStufen() {
                 : def.anforderungen
         };
     });
+    // Alte Entweder/Oder-Verknüpfung restlos entfernen (Feature abgeschafft)
+    state.badges.forEach(b => (b.anforderungen || []).forEach(a => { delete a.entwederOder; }));
     state.stufenVersion = STUFEN_VERSION;
 }
 
@@ -1398,14 +1374,8 @@ function getStufenProgress(kind, stufeId) {
     const st = getStufe(stufeId);
     if (!st || !st.anforderungen.length) return { done: 0, total: 0, pct: 0 };
     const p = (kind.progress || {})[stufeId] || {};
-    // Entweder/Oder-Gruppen zählen als eine Aufgabe (erledigt wenn mind. eine Option gecheckt)
-    const gruppen = [...new Set(st.anforderungen.filter(a => a.entwederOder).map(a => a.entwederOder))];
-    const einzeln = st.anforderungen.filter(a => !a.entwederOder);
-    const total = einzeln.length + gruppen.length;
-    let done = einzeln.filter(a => p[a.id]).length;
-    gruppen.forEach(g => {
-        if (st.anforderungen.filter(a => a.entwederOder === g).some(a => p[a.id])) done++;
-    });
+    const total = st.anforderungen.length;
+    const done = st.anforderungen.filter(a => p[a.id]).length;
     return { done, total, pct: total ? Math.round(done / total * 100) : 0 };
 }
 
@@ -1829,48 +1799,21 @@ function logbookInnerHTML(kind) {
         body = `<div class="lb-leer">Noch keine Aufgaben für „${esc(stufe.name)}".<br>Schick mir die Punkte – oder trage sie im Tab „Abzeichen" selbst ein.</div>`;
     } else {
         const prog = (kind.progress || {})[stufe.id] || {};
-        // Aufgaben rendern – Entweder/Oder-Gruppen zusammenfassen
-        const rendered = [];
-        const geseheneGruppen = new Set();
-        stufe.anforderungen.forEach(anf => {
-            if (anf.entwederOder) {
-                if (geseheneGruppen.has(anf.entwederOder)) return;
-                geseheneGruppen.add(anf.entwederOder);
-                const optionen = stufe.anforderungen.filter(a => a.entwederOder === anf.entwederOder);
-                const optHTML = optionen.map((opt, i) => {
-                    const done = !!prog[opt.id];
-                    const note = prog[opt.id + '_note'] || '';
-                    const datum = prog[opt.id + '_datum'] || '';
-                    const trigId = `datum-${kind.id}-${opt.id}`;
-                    const datumEl = done
-                        ? (datum
-                            ? `<span class="lb-datum" id="${trigId}" onclick="event.stopPropagation();showDatumInput('${kind.id}','${stufe.id}','${opt.id}','${trigId}')">${datum}</span>`
-                            : `<span class="lb-datum-trigger trainer-only" id="${trigId}" onclick="event.stopPropagation();showDatumInput('${kind.id}','${stufe.id}','${opt.id}','${trigId}')"></span>`)
-                        : '';
-                    return (i > 0 ? '<div class="lb-eo-divider">ODER</div>' : '') +
-                        `<div class="lb-task ${done ? 'lb-done' : ''}" id="lbtask-${opt.id}" onclick="event.stopPropagation()">
-                            <span class="lb-task-text" onclick="toggleAufgabe('${kind.id}','${stufe.id}','${opt.id}',${!done})">${esc(opt.text)}${datumEl}</span>
-                            <input class="lb-note" type="text" value="${esc(note)}" placeholder="Notiz…" ${(trainerMode || editorMode) ? '' : 'readonly'} onclick="event.stopPropagation()" onblur="saveNotiz('${kind.id}','${stufe.id}','${opt.id}',this.value)">
-                            <input class="lb-cb" type="checkbox" ${done ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleAufgabe('${kind.id}','${stufe.id}','${opt.id}',this.checked)">
-                        </div>`;
-                }).join('');
-                rendered.push(`<div class="lb-eo-group">${optHTML}</div>`);
-            } else {
-                const done = !!prog[anf.id];
-                const note = prog[anf.id + '_note'] || '';
-                const datum = prog[anf.id + '_datum'] || '';
-                const trigId = `datum-${kind.id}-${anf.id}`;
-                const datumEl = done
-                    ? (datum
-                        ? `<span class="lb-datum" id="${trigId}" onclick="event.stopPropagation();showDatumInput('${kind.id}','${stufe.id}','${anf.id}','${trigId}')">${datum}</span>`
-                        : `<span class="lb-datum-trigger trainer-only" id="${trigId}" onclick="event.stopPropagation();showDatumInput('${kind.id}','${stufe.id}','${anf.id}','${trigId}')"></span>`)
-                    : '';
-                rendered.push(`<div class="lb-task ${done ? 'lb-done' : ''}" id="lbtask-${anf.id}" onclick="event.stopPropagation()">
-                    <span class="lb-task-text" onclick="toggleAufgabe('${kind.id}','${stufe.id}','${anf.id}',${!done})">${esc(anf.text)}${datumEl}</span>
-                    <input class="lb-note" type="text" value="${esc(note)}" placeholder="Notiz…" ${(trainerMode || editorMode) ? '' : 'readonly'} onclick="event.stopPropagation()" onblur="saveNotiz('${kind.id}','${stufe.id}','${anf.id}',this.value)">
-                    <input class="lb-cb" type="checkbox" ${done ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleAufgabe('${kind.id}','${stufe.id}','${anf.id}',this.checked)">
-                </div>`);
-            }
+        const rendered = stufe.anforderungen.map(anf => {
+            const done = !!prog[anf.id];
+            const note = prog[anf.id + '_note'] || '';
+            const datum = prog[anf.id + '_datum'] || '';
+            const trigId = `datum-${kind.id}-${anf.id}`;
+            const datumEl = done
+                ? (datum
+                    ? `<span class="lb-datum" id="${trigId}" onclick="event.stopPropagation();showDatumInput('${kind.id}','${stufe.id}','${anf.id}','${trigId}')">${datum}</span>`
+                    : `<span class="lb-datum-trigger trainer-only" id="${trigId}" onclick="event.stopPropagation();showDatumInput('${kind.id}','${stufe.id}','${anf.id}','${trigId}')"></span>`)
+                : '';
+            return `<div class="lb-task ${done ? 'lb-done' : ''}" id="lbtask-${anf.id}" onclick="event.stopPropagation()">
+                <span class="lb-task-text" onclick="toggleAufgabe('${kind.id}','${stufe.id}','${anf.id}',${!done})">${esc(anf.text)}${datumEl}</span>
+                <input class="lb-note" type="text" value="${esc(note)}" placeholder="Notiz…" ${(trainerMode || editorMode) ? '' : 'readonly'} onclick="event.stopPropagation()" onblur="saveNotiz('${kind.id}','${stufe.id}','${anf.id}',this.value)">
+                <input class="lb-cb" type="checkbox" ${done ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleAufgabe('${kind.id}','${stufe.id}','${anf.id}',this.checked)">
+            </div>`;
         });
         body = rendered.join('');
     }
@@ -2199,10 +2142,10 @@ function saveStufe() {
     inputs.forEach((inp, idx) => {
         const text = inp.value.trim();
         if (text) {
-            // Aufgabe an derselben Position behält ID + entwederOder-Gruppe (auch bei Umbenennen)
+            // Aufgabe an derselben Position behält ihre ID (auch bei Umbenennen)
             const alt = stufe.anforderungen[idx];
             if (alt) {
-                neue.push({ ...alt, text });
+                neue.push({ id: alt.id, text });
             } else {
                 neue.push({ id: uid(), text });
             }
@@ -2279,26 +2222,13 @@ function teilen() {
             : `<div style="font-size:9px;color:#94a3b8;font-style:italic;margin-bottom:4px">Noch keine Abzeichen erhalten</div>`;
 
         // Aufgaben der aktuellen Stufe
-        const gesGruppen = new Set();
         let aufgabenHTML = '';
         const noteHTML = txt => txt ? `<div style="font-size:8px;color:#92400e;padding:0 0 1.5px 14px">📝 ${esc(txt)}</div>` : '';
         aktStufe.anforderungen.forEach(anf => {
-            if (anf.entwederOder) {
-                if (gesGruppen.has(anf.entwederOder)) return;
-                gesGruppen.add(anf.entwederOder);
-                aktStufe.anforderungen.filter(a => a.entwederOder === anf.entwederOder).forEach((opt, i) => {
-                    const done = !!prog[opt.id];
-                    const d = prog[opt.id + '_datum'] || '';
-                    if (i > 0) aufgabenHTML += `<div style="font-size:7.5px;color:#bbb;padding:1px 0">— oder —</div>`;
-                    aufgabenHTML += `<div style="font-size:9px;padding:1.5px 0;color:${done ? '#16a34a' : '#aaa'}">${done ? '✓' : '○'} ${esc(opt.text)}${d ? ` <span style="color:#0891b2;font-size:8px">${d}</span>` : ''}</div>`;
-                    aufgabenHTML += noteHTML(prog[opt.id + '_note'] || '');
-                });
-            } else {
-                const done = !!prog[anf.id];
-                const d = prog[anf.id + '_datum'] || '';
-                aufgabenHTML += `<div style="font-size:9px;padding:1.5px 0;color:${done ? '#16a34a' : '#aaa'}">${done ? '✓' : '○'} ${esc(anf.text)}${d ? ` <span style="color:#0891b2;font-size:8px">${d}</span>` : ''}</div>`;
-                aufgabenHTML += noteHTML(prog[anf.id + '_note'] || '');
-            }
+            const done = !!prog[anf.id];
+            const d = prog[anf.id + '_datum'] || '';
+            aufgabenHTML += `<div style="font-size:9px;padding:1.5px 0;color:${done ? '#16a34a' : '#aaa'}">${done ? '✓' : '○'} ${esc(anf.text)}${d ? ` <span style="color:#0891b2;font-size:8px">${d}</span>` : ''}</div>`;
+            aufgabenHTML += noteHTML(prog[anf.id + '_note'] || '');
         });
 
         const abzDatum = prog['_abzeichen_datum'] || '';
