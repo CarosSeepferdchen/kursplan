@@ -946,6 +946,37 @@
         }
         .anw-week-x:hover { background: #fee2e2; transform: scale(1.08); }
         .anw-week-x:active { transform: scale(0.92); }
+
+        /* Teilen-Auswahl: ganzer Tag / Kurs / Kind */
+        #teilen-options { max-height: 60vh; overflow-y: auto; }
+        .teilen-ganztag {
+            width: 100%; padding: 0.8rem; border-radius: 13px;
+            border: 2px solid #fdba74; background: #fff7ed; color: #c2410c;
+            font-size: 0.95rem; font-weight: 800; cursor: pointer; font-family: inherit;
+            margin-bottom: 0.9rem; transition: background 0.15s, transform 0.12s;
+        }
+        .teilen-ganztag:hover { background: #ffedd5; transform: translateY(-1px); }
+        .teilen-ganztag:active { transform: scale(0.98); }
+        .teilen-kurs-block {
+            border: 1px solid #eef2f7; border-left: 4px solid #cbd5e1;
+            border-radius: 11px; padding: 0.35rem; margin-bottom: 0.6rem;
+        }
+        .teilen-kurs-head {
+            width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
+            padding: 0.5rem 0.55rem; border: none; background: none;
+            font-size: 0.92rem; font-weight: 800; cursor: pointer; font-family: inherit;
+            border-radius: 9px; text-align: left; transition: background 0.14s;
+        }
+        .teilen-kurs-head:hover { background: #f8fafc; }
+        .teilen-kurs-go { font-size: 0.76rem; font-weight: 700; color: #2563eb; white-space: nowrap; flex-shrink: 0; }
+        .teilen-kind {
+            width: 100%; text-align: left; padding: 0.45rem 0.7rem;
+            border: none; background: none; cursor: pointer; font-family: inherit;
+            font-size: 0.88rem; color: #475569; border-radius: 8px;
+            transition: background 0.14s, transform 0.12s, color 0.14s;
+        }
+        .teilen-kind:hover { background: #eff6ff; color: #1d4ed8; transform: translateX(3px); }
+        .teilen-leer { font-size: 0.8rem; color: #94a3b8; font-style: italic; padding: 0.35rem 0.7rem; }
         .anw-count {
             font-size: 0.78rem; font-weight: 700; color: #0369a1;
             background: #e0f2fe; padding: 0.2rem 0.6rem;
@@ -1170,7 +1201,7 @@
         </div>
         <div class="kurse-daybar">
             <div class="chips-row" id="day-chips"></div>
-            <button class="anw-share-btn" onclick="teilen()">📄 Teilen</button>
+            <button class="anw-share-btn" onclick="oeffneKursTeilen()">📄 Teilen</button>
         </div>
         <div id="kurse-list"></div>
     </div>
@@ -1286,6 +1317,18 @@
             <button class="btn btn-primary" id="anw-share-go" onclick="anwShareErstellen()" style="flex:1">📄 PDF erstellen</button>
             <button class="btn btn-secondary" onclick="closeModal('modal-anw-share')">Abbrechen</button>
         </div>
+    </div>
+</div>
+
+<!-- Teilen: ganzer Tag / Kurs / Kind auswählen -->
+<div class="modal-bg" id="modal-teilen">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 class="modal-title" id="teilen-title">Teilen</h2>
+            <button class="modal-close" onclick="closeModal('modal-teilen')">×</button>
+        </div>
+        <p style="font-size:0.86rem;color:#475569;margin-bottom:0.6rem">Was möchtest du als PDF teilen?</p>
+        <div id="teilen-options"></div>
     </div>
 </div>
 
@@ -2765,38 +2808,73 @@ function anwShareErstellen() {
     pdfFensterOeffnen(titel, datumHeute, body, dateiname);
 }
 
-function teilen() {
+// Kurs-Block für die PDF (genutzt von teilen() und teileKurs())
+function kursPDFBlock(kurs) {
+    const cf = kursFarbe(kurs.id);
+    const kinder = kinderImKurs(kurs.id);
+    const zeit = kurs.von ? ` &middot; ${kurs.von}${kurs.bis ? '&ndash;' + kurs.bis : ''}` : '';
+    const kinderHTML = kinder.length
+        ? kinder.map(k => kindPDFBlock(k)).join('')
+        : `<div style="padding:7px 10px;color:#94a3b8;font-style:italic;font-size:10px">Keine Kinder eingetragen</div>`;
+    return `<div style="margin-bottom:14px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;page-break-inside:avoid">
+        <div style="background:${cf.hell};border-left:4px solid ${cf.farbe};padding:7px 10px">
+            <div style="font-size:13px;font-weight:800;color:${cf.farbe}">${esc(kurs.name)}</div>
+            <div style="font-size:9px;color:#666;margin-top:2px">${WOCHENTAGE[kurs.wochentag]}${zeit}${kurs.jahrgang ? ' &middot; ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''} &middot; ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</div>
+        </div>
+        ${kinderHTML}
+    </div>`;
+}
+
+// Auswahl-Dialog beim Kurse-Teilen: ganzer Tag, ein Kurs oder ein Kind
+function oeffneKursTeilen() {
     const tag = currentDay;
     let kurse = [];
-    if (tag === 'alle') {
-        WOCHENTAGE.forEach((_, i) => kurse.push(...kurseAmTag(i)));
-    } else {
-        kurse = kurseAmTag(tag);
-    }
+    if (tag === 'alle') { WOCHENTAGE.forEach((_, i) => kurse.push(...kurseAmTag(i))); }
+    else { kurse = kurseAmTag(tag); }
     if (!kurse.length) { alert('Keine Kurse für diesen Tag.'); return; }
 
     const tagName = tag === 'alle' ? 'Alle Tage' : WOCHENTAGE[tag];
-    const datum = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-
-    let body = '';
+    document.getElementById('teilen-title').textContent = 'Teilen — ' + tagName;
+    let html = `<button class="teilen-ganztag" onclick="closeModal('modal-teilen');teilen()">📅 Ganzer Tag · alle Kurse</button>`;
     kurse.forEach(kurs => {
         const cf = kursFarbe(kurs.id);
         const kinder = kinderImKurs(kurs.id);
-        const zeit = kurs.von ? ` &middot; ${kurs.von}${kurs.bis ? '&ndash;' + kurs.bis : ''}` : '';
-        const kinderHTML = kinder.length
-            ? kinder.map(k => kindPDFBlock(k)).join('')
-            : `<div style="padding:7px 10px;color:#94a3b8;font-style:italic;font-size:10px">Keine Kinder eingetragen</div>`;
-        body += `<div style="margin-bottom:14px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;page-break-inside:avoid">
-            <div style="background:${cf.hell};border-left:4px solid ${cf.farbe};padding:7px 10px">
-                <div style="font-size:13px;font-weight:800;color:${cf.farbe}">${esc(kurs.name)}</div>
-                <div style="font-size:9px;color:#666;margin-top:2px">${WOCHENTAGE[kurs.wochentag]}${zeit}${kurs.jahrgang ? ' &middot; ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''} &middot; ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</div>
-            </div>
-            ${kinderHTML}
+        const zeit = kurs.von ? ` · ${kurs.von}${kurs.bis ? '–' + kurs.bis : ''}` : '';
+        html += `<div class="teilen-kurs-block" style="border-left-color:${cf.farbe}">
+            <button class="teilen-kurs-head" style="color:${cf.farbe}" onclick="closeModal('modal-teilen');teileKurs('${kurs.id}')">
+                <span>${esc(kurs.name)} · ${WOCHENTAGE_KURZ[kurs.wochentag]}${zeit}</span>
+                <span class="teilen-kurs-go">Kurs teilen →</span>
+            </button>
+            ${kinder.length
+                ? kinder.map(k => `<button class="teilen-kind" onclick="closeModal('modal-teilen');teileKind('${k.id}')">👤 ${esc(k.name)}</button>`).join('')
+                : `<div class="teilen-leer">Keine Kinder in diesem Kurs</div>`}
         </div>`;
     });
+    document.getElementById('teilen-options').innerHTML = html;
+    openModal('modal-teilen');
+}
 
+function teilen() {
+    const tag = currentDay;
+    let kurse = [];
+    if (tag === 'alle') { WOCHENTAGE.forEach((_, i) => kurse.push(...kurseAmTag(i))); }
+    else { kurse = kurseAmTag(tag); }
+    if (!kurse.length) { alert('Keine Kurse für diesen Tag.'); return; }
+    const tagName = tag === 'alle' ? 'Alle Tage' : WOCHENTAGE[tag];
+    const datum = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const body = kurse.map(kursPDFBlock).join('');
     const dateiname = `CarosSeepferdchen_${tagName}_${datum.replace(/\./g,'-')}.pdf`;
     pdfFensterOeffnen(tagName, datum, body, dateiname);
+}
+
+// PDF für genau einen Kurs (alle Kinder dieses Kurses)
+function teileKurs(kursId) {
+    const kurs = getKurs(kursId); if (!kurs) return;
+    const datum = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const body = kursPDFBlock(kurs);
+    const safeName = kurs.name.replace(/[^0-9A-Za-zÄÖÜäöüß]+/g, '-');
+    const dateiname = `CarosSeepferdchen_${safeName}_${datum.replace(/\./g,'-')}.pdf`;
+    pdfFensterOeffnen(kurs.name, datum, body, dateiname);
 }
 
 // ── Init ──────────────────────────────────────────────────────────
