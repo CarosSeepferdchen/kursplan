@@ -354,6 +354,12 @@
         }
         .kurs-head-left { min-width: 0; }
         .kurs-title { font-weight: 800; font-size: 1.02rem; }
+        .kurs-trainer {
+            display: inline-block; font-size: 0.7rem; font-weight: 700;
+            background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe;
+            border-radius: 99px; padding: 0.05rem 0.5rem; margin-left: 0.4rem;
+            vertical-align: middle; white-space: nowrap;
+        }
         .kurs-sub {
             font-size: 0.78rem;
             color: #64748b;
@@ -1362,6 +1368,10 @@
             <input class="form-input" type="text" id="kurs-name" placeholder="z.B. Anfänger / Gruppe 1"
                 onkeydown="if(event.key==='Enter')saveKurs()">
         </div>
+        <div class="form-group">
+            <label class="form-label">Trainer (optional)</label>
+            <input class="form-input" type="text" id="kurs-trainer" placeholder="z.B. Tom">
+        </div>
         <div class="form-row">
             <div class="form-group" style="flex:2">
                 <label class="form-label">Wochentag</label>
@@ -1491,11 +1501,14 @@
             <button class="modal-close" onclick="closeModal('modal-backup')">×</button>
         </div>
         <div id="backup-status" style="font-size:.85rem;font-weight:600;margin-bottom:.4rem"></div>
-        <div style="display:flex;gap:.6rem;margin-bottom:1.2rem">
+        <div style="display:flex;gap:.6rem;margin-bottom:.6rem">
             <button class="btn btn-primary" onclick="exportData()" style="flex:1">💾 Sicherung speichern</button>
             <button class="btn btn-secondary" onclick="document.getElementById('backup-file-input').click()" style="flex:1">📂 Sicherung laden</button>
         </div>
+        <button class="btn btn-secondary" onclick="document.getElementById('backup-merge-input').click()" style="width:100%">➕ Trainer-Daten dazuladen</button>
+        <div style="font-size:.78rem;color:#64748b;margin:.45rem 0 1.1rem">Fügt Kurse &amp; Kinder aus einer oder mehreren Sicherungs-Dateien hinzu (ersetzt nichts). Du wirst je Datei nach dem Trainer-Namen gefragt.</div>
         <input type="file" id="backup-file-input" accept="application/json,.json" style="display:none" onchange="importData(event)">
+        <input type="file" id="backup-merge-input" accept="application/json,.json" multiple style="display:none" onchange="mergeData(event)">
     </div>
 </div>
 
@@ -1670,6 +1683,47 @@ function importData(event) {
     };
     reader.readAsText(file);
     event.target.value = '';
+}
+
+// Mehrere Trainer-Sicherungen DAZULADEN (zusammenführen, ersetzt nichts)
+function mergeData(event) {
+    const jobs = [...event.target.files].map(file => ({
+        file,
+        trainer: (prompt('Von welchem Trainer sind die Daten aus „' + file.name + '"?\n(leer lassen = ohne Markierung)') || '').trim()
+    }));
+    event.target.value = '';
+    if (!jobs.length) return;
+    let pending = jobs.length, nKurse = 0, nKinder = 0, fehler = 0;
+    jobs.forEach(({ file, trainer }) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                const imp = normalizeState(JSON.parse(e.target.result));
+                imp.kurse.forEach(k => {
+                    if (!state.kurse.some(x => x.id === k.id)) {
+                        if (trainer) k.trainer = trainer;
+                        state.kurse.push(k); nKurse++;
+                    }
+                });
+                imp.kinder.forEach(k => {
+                    if (!state.kinder.some(x => x.id === k.id)) { state.kinder.push(k); nKinder++; }
+                });
+                ['wochenplaene', 'anwesenheit', 'dateien', 'abschnittCount'].forEach(feld => {
+                    const src = imp[feld] || {};
+                    if (!state[feld]) state[feld] = {};
+                    Object.keys(src).forEach(id => { if (!(id in state[feld])) state[feld][id] = src[id]; });
+                });
+            } catch (err) { fehler++; }
+            if (--pending === 0) {
+                save(); renderKurse();
+                if (document.getElementById('modal-backup')?.classList.contains('open')) renderBackupList();
+                let msg = `Hinzugefügt: ${nKurse} Kurs(e) und ${nKinder} Kind(er).`;
+                if (fehler) msg += `\n${fehler} Datei(en) konnten nicht gelesen werden.`;
+                alert(msg);
+            }
+        };
+        reader.readAsText(file);
+    });
 }
 
 
@@ -1912,7 +1966,7 @@ function renderKursTrainingCard(kursId) {
     return `<div class="kurs-card" id="training-card-${kursId}" style="border-left-color:${cf.farbe};margin-bottom:1.1rem">
         <div class="kurs-card-head" style="background:${cf.hell}">
             <div class="kurs-head-left">
-                <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}</div>
+                <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
                 <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}</div>
             </div>
         </div>
@@ -2010,7 +2064,7 @@ function renderAnwesenheit() {
         return `<div class="kurs-card" style="border-left-color:${cf.farbe};margin-bottom:1.1rem">
             <div class="kurs-card-head" style="background:${cf.hell}">
                 <div class="kurs-head-left">
-                    <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}</div>
+                    <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
                     <div class="kurs-sub">${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}</div>
                 </div>
                 ${kinder.length ? `<div class="anw-count" id="attendance-sum-${kurs.id}-${key}">${anwesend} von ${kinder.length} anwesend</div>` : ''}
@@ -2211,7 +2265,7 @@ function kursCardHTML(kurs) {
     return `<div class="kurs-card" style="border-left-color:${cf.farbe}">
         <div class="kurs-card-head" style="background:${cf.hell}">
             <div class="kurs-head-left">
-                <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}</div>
+                <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
                 <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''} · ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</div>
             </div>
             <div class="kurs-actions">
@@ -2486,6 +2540,7 @@ function openAddKurs() {
     editKursId = null;
     document.getElementById('modal-kurs-title').textContent = 'Kurs anlegen';
     document.getElementById('kurs-name').value = '';
+    document.getElementById('kurs-trainer').value = '';
     document.getElementById('kurs-jahrgang').value = '';
     document.getElementById('kurs-jahrgang-bis').value = '';
     document.getElementById('kurs-von').value = '';
@@ -2500,6 +2555,7 @@ function openEditKurs(id) {
     const kurs = getKurs(id); if (!kurs) return;
     document.getElementById('modal-kurs-title').textContent = 'Kurs bearbeiten';
     document.getElementById('kurs-name').value = kurs.name;
+    document.getElementById('kurs-trainer').value = kurs.trainer || '';
     document.getElementById('kurs-jahrgang').value = kurs.jahrgang || '';
     document.getElementById('kurs-jahrgang-bis').value = kurs.jahrgangBis || '';
     document.getElementById('kurs-von').value = kurs.von || '';
@@ -2511,15 +2567,16 @@ function openEditKurs(id) {
 function saveKurs() {
     const name = document.getElementById('kurs-name').value.trim();
     if (!name) { document.getElementById('kurs-name').focus(); return; }
+    const trainer     = document.getElementById('kurs-trainer').value.trim() || null;
     const wochentag   = parseInt(document.getElementById('kurs-tag').value);
     const jahrgang    = parseInt(document.getElementById('kurs-jahrgang').value) || null;
     const jahrgangBis = parseInt(document.getElementById('kurs-jahrgang-bis').value) || null;
     const von = document.getElementById('kurs-von').value;
     const bis = document.getElementById('kurs-bis').value;
     if (editKursId) {
-        Object.assign(getKurs(editKursId), { name, wochentag, jahrgang, jahrgangBis, von, bis });
+        Object.assign(getKurs(editKursId), { name, trainer, wochentag, jahrgang, jahrgangBis, von, bis });
     } else {
-        state.kurse.push({ id: uid(), name, wochentag, jahrgang, jahrgangBis, von, bis });
+        state.kurse.push({ id: uid(), name, trainer, wochentag, jahrgang, jahrgangBis, von, bis });
     }
     currentDay = wochentag;
     save(); closeModal('modal-kurs'); renderKurse();
