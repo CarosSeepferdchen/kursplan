@@ -1033,6 +1033,20 @@
             background: #e0f2fe; padding: 0.2rem 0.6rem;
             border-radius: 999px; white-space: nowrap; flex-shrink: 0;
         }
+        .anw-ausfall-btn {
+            padding: 0.3rem 0.75rem; border-radius: 99px;
+            border: 1.5px solid #fecaca; background: #fef2f2; color: #b91c1c;
+            font-size: 0.76rem; font-weight: 700; cursor: pointer; font-family: inherit;
+            transition: background 0.15s;
+        }
+        .anw-ausfall-btn:hover { background: #fee2e2; }
+        .anw-ausfall-btn.ist-aus { border-color: #bbf7d0; background: #f0fdf4; color: #15803d; }
+        .anw-ausfall-btn.ist-aus:hover { background: #dcfce7; }
+        .anw-ausfall-note {
+            margin: 0.2rem 0.85rem 0.5rem; padding: 0.6rem 0.8rem; border-radius: 9px;
+            background: #fef2f2; color: #b91c1c; font-size: 0.88rem; font-weight: 600;
+        }
+        .kurs-ausgefallen .kurs-title { text-decoration: line-through; opacity: 0.75; }
 
         /* Dateibereich */
         .dateien-section {
@@ -1396,6 +1410,16 @@
             <div class="form-group">
                 <label class="form-label">Bis</label>
                 <input class="form-input" type="time" id="kurs-bis">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Kursblock von</label>
+                <input class="form-input" type="date" id="kurs-block-von">
+            </div>
+            <div class="form-group">
+                <label class="form-label">bis</label>
+                <input class="form-input" type="date" id="kurs-block-bis">
             </div>
         </div>
         <div class="modal-footer" style="display:flex;gap:0.6rem;margin-top:1.25rem;padding-top:1rem;border-top:1px solid #f1f5f9">
@@ -1996,6 +2020,37 @@ function isoOf(d) {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+// ── Kursblock & Termine ───────────────────────────────────────────
+// Alle Termine eines Kurses laut Block (Wochentag zwischen Start und Ende, ohne Ausfall-Tage)
+function kursTermine(kurs) {
+    if (!kurs.blockVon || !kurs.blockBis) return [];
+    const out = [];
+    const end = new Date(kurs.blockBis + 'T00:00:00');
+    let d = new Date(kurs.blockVon + 'T00:00:00');
+    while (d <= end && ((d.getDay() + 6) % 7) !== kurs.wochentag) d.setDate(d.getDate() + 1);
+    const ausfall = kurs.ausfall || [];
+    while (d <= end) {
+        const iso = isoOf(d);
+        if (!ausfall.includes(iso)) out.push(iso);
+        d.setDate(d.getDate() + 7);
+    }
+    return out;
+}
+function istAusfall(kurs, iso) { return (kurs.ausfall || []).includes(iso); }
+function toggleAusfall(kursId, iso) {
+    const kurs = getKurs(kursId); if (!kurs) return;
+    if (!kurs.ausfall) kurs.ausfall = [];
+    const i = kurs.ausfall.indexOf(iso);
+    if (i >= 0) kurs.ausfall.splice(i, 1); else kurs.ausfall.push(iso);
+    save();
+    renderAnwesenheit();
+}
+function dmKurz(iso) { const x = new Date(iso + 'T00:00:00'); return String(x.getDate()).padStart(2,'0') + '.' + String(x.getMonth()+1).padStart(2,'0') + '.'; }
+function blockLabel(kurs) {
+    if (!kurs.blockVon || !kurs.blockBis) return '';
+    return ' · 📅 ' + dmKurz(kurs.blockVon) + '–' + dmKurz(kurs.blockBis);
+}
+
 function anwHeute() {
     anwesenheitDatum = isoAnwHeute();
     renderAnwesenheit();
@@ -2054,6 +2109,7 @@ function renderAnwesenheit() {
         const anwObj = (state.anwesenheit[kurs.id] || {})[key] || {};
         const anwesend = kinder.filter(k => anwObj[k.id]).length;
         const zeit = kurs.von ? `<span class="kurs-time-badge" style="background:${cf.hell};color:${cf.farbe}">${kurs.von}${kurs.bis ? '–'+kurs.bis : ''}</span>` : '';
+        const ausgefallen = istAusfall(kurs, anwesenheitDatum);
         const rows = kinder.length
             ? kinder.map(k => `<label class="attendance-row">
                 <input type="checkbox" class="attendance-cb" ${anwObj[k.id] ? 'checked' : ''}
@@ -2061,15 +2117,20 @@ function renderAnwesenheit() {
                 <span class="attendance-name">${esc(k.name)}</span>
               </label>`).join('')
             : `<div class="attendance-empty">Noch keine Kinder in diesem Kurs</div>`;
-        return `<div class="kurs-card" style="border-left-color:${cf.farbe};margin-bottom:1.1rem">
+        const body = ausgefallen
+            ? `<div class="anw-ausfall-note">🚫 Dieser Termin fällt aus (Ferien/Feiertag)</div>`
+            : `<div style="padding:0.6rem 0.85rem 0.2rem">${rows}</div>`;
+        const ausfallBtn = `<button class="anw-ausfall-btn${ausgefallen ? ' ist-aus' : ''}" onclick="toggleAusfall('${kurs.id}','${anwesenheitDatum}')">${ausgefallen ? '↩︎ Findet doch statt' : '🚫 Fällt aus (Ferien/Feiertag)'}</button>`;
+        return `<div class="kurs-card${ausgefallen ? ' kurs-ausgefallen' : ''}" style="border-left-color:${cf.farbe};margin-bottom:1.1rem">
             <div class="kurs-card-head" style="background:${cf.hell}">
                 <div class="kurs-head-left">
                     <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
                     <div class="kurs-sub">${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}</div>
                 </div>
-                ${kinder.length ? `<div class="anw-count" id="attendance-sum-${kurs.id}-${key}">${anwesend} von ${kinder.length} anwesend</div>` : ''}
+                ${!ausgefallen && kinder.length ? `<div class="anw-count" id="attendance-sum-${kurs.id}-${key}">${anwesend} von ${kinder.length} anwesend</div>` : ''}
             </div>
-            <div style="padding:0.6rem 0.85rem 0.85rem">${rows}</div>
+            ${body}
+            <div style="padding:0 0.85rem 0.7rem">${ausfallBtn}</div>
         </div>`;
     }).join('');
 }
@@ -2266,7 +2327,7 @@ function kursCardHTML(kurs) {
         <div class="kurs-card-head" style="background:${cf.hell}">
             <div class="kurs-head-left">
                 <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
-                <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''} · ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</div>
+                <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}${blockLabel(kurs)} · ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</div>
             </div>
             <div class="kurs-actions">
                 <button class="btn btn-sm trainer-only" style="background:${cf.farbe};color:white" onclick="openAddKind('${kurs.id}')">＋ Kind</button>
@@ -2545,6 +2606,8 @@ function openAddKurs() {
     document.getElementById('kurs-jahrgang-bis').value = '';
     document.getElementById('kurs-von').value = '';
     document.getElementById('kurs-bis').value = '';
+    document.getElementById('kurs-block-von').value = '';
+    document.getElementById('kurs-block-bis').value = '';
     fillTagSelect(currentDay === 'alle' ? HEUTE : currentDay);
     openModal('modal-kurs');
     setTimeout(() => document.getElementById('kurs-name').focus(), 60);
@@ -2560,6 +2623,8 @@ function openEditKurs(id) {
     document.getElementById('kurs-jahrgang-bis').value = kurs.jahrgangBis || '';
     document.getElementById('kurs-von').value = kurs.von || '';
     document.getElementById('kurs-bis').value = kurs.bis || '';
+    document.getElementById('kurs-block-von').value = kurs.blockVon || '';
+    document.getElementById('kurs-block-bis').value = kurs.blockBis || '';
     fillTagSelect(kurs.wochentag);
     openModal('modal-kurs');
 }
@@ -2573,10 +2638,12 @@ function saveKurs() {
     const jahrgangBis = parseInt(document.getElementById('kurs-jahrgang-bis').value) || null;
     const von = document.getElementById('kurs-von').value;
     const bis = document.getElementById('kurs-bis').value;
+    const blockVon = document.getElementById('kurs-block-von').value || null;
+    const blockBis = document.getElementById('kurs-block-bis').value || null;
     if (editKursId) {
-        Object.assign(getKurs(editKursId), { name, trainer, wochentag, jahrgang, jahrgangBis, von, bis });
+        Object.assign(getKurs(editKursId), { name, trainer, wochentag, jahrgang, jahrgangBis, von, bis, blockVon, blockBis });
     } else {
-        state.kurse.push({ id: uid(), name, trainer, wochentag, jahrgang, jahrgangBis, von, bis });
+        state.kurse.push({ id: uid(), name, trainer, wochentag, jahrgang, jahrgangBis, von, bis, blockVon, blockBis });
     }
     currentDay = wochentag;
     save(); closeModal('modal-kurs'); renderKurse();
@@ -2876,11 +2943,14 @@ function oeffneAnwTeilen() {
     const kurse = kurseAmTag(tag);
     if (!kurse.length) { alert('Am ' + WOCHENTAGE[tag] + ' gibt es keine Kurse.'); return; }
 
-    // Alle erfassten Termine (d-Schlüssel) der Kurse dieses Wochentags sammeln
+    // Termine sammeln: laut Kursblock (automatisch, ohne Ausfall-Tage) UND bereits erfasste Anwesenheit
     const set = new Set();
-    kurse.forEach(k => Object.keys(state.anwesenheit[k.id] || {}).forEach(key => {
-        if (key.startsWith('d-')) set.add(key.slice(2));
-    }));
+    kurse.forEach(k => {
+        kursTermine(k).forEach(t => set.add(t));
+        Object.keys(state.anwesenheit[k.id] || {}).forEach(key => {
+            if (key.startsWith('d-')) set.add(key.slice(2));
+        });
+    });
     const termine = [...set].sort();
 
     document.getElementById('anw-share-info').textContent =
@@ -2898,7 +2968,7 @@ function oeffneAnwTeilen() {
                 <button type="button" class="anw-week-x" onclick="anwRemoveWeek(this)" title="Diese Woche aus der Liste entfernen">×</button>
             </div>`;
         }).join('')
-        : `<div class="attendance-empty">Noch keine Anwesenheit für ${WOCHENTAGE[tag]} erfasst.</div>`;
+        : `<div class="attendance-empty">Noch keine Termine. Lege im Kurs (🔧) einen Kursblock „von/bis" an – oder erfasse erst Anwesenheit.</div>`;
     anwShareUpdateCount();
     openModal('modal-anw-share');
 }
@@ -2954,6 +3024,7 @@ function anwShareErstellen() {
                 let total = 0;
                 let cells = `<td style="text-align:left;padding:3px 6px;border:1px solid #eef2f7">${esc(k.name)}</td>`;
                 dates.forEach(t => {
+                    if (istAusfall(kurs, t)) { cells += `<td style="text-align:center;padding:3px;border:1px solid #eef2f7;color:#cbd5e1">&mdash;</td>`; return; }
                     const da = (anw['d-' + t] || {})[k.id];
                     if (da) total++;
                     cells += `<td style="text-align:center;padding:3px;border:1px solid #eef2f7;color:${da ? '#16a34a' : '#cbd5e1'};font-weight:${da ? '700' : '400'}">${da ? '✓' : '·'}</td>`;
@@ -2963,6 +3034,7 @@ function anwShareErstellen() {
             });
             let sumCells = `<td style="text-align:left;padding:3px 6px;border:1px solid #eef2f7;font-weight:700;color:#64748b">anwesend</td>`;
             dates.forEach(t => {
+                if (istAusfall(kurs, t)) { sumCells += `<td style="text-align:center;padding:3px;border:1px solid #eef2f7;color:#cbd5e1">&mdash;</td>`; return; }
                 const c = kinder.filter(k => (anw['d-' + t] || {})[k.id]).length;
                 sumCells += `<td style="text-align:center;padding:3px;border:1px solid #eef2f7;font-weight:700;color:#64748b">${c}</td>`;
             });
