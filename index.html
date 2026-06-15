@@ -505,6 +505,13 @@
             font-weight: 700;
             color: #94a3b8;
         }
+        .lb-stufe-komplett {
+            display: flex; align-items: center; gap: 0.55rem;
+            padding: 0.5rem 0.7rem; margin-bottom: 0.5rem;
+            background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px;
+            cursor: pointer; font-size: 0.85rem; font-weight: 700; color: #15803d;
+        }
+        .lb-stufe-komplett input { width: 18px; height: 18px; accent-color: #16a34a; cursor: pointer; flex-shrink: 0; }
         .lb-task {
             display: flex;
             align-items: center;
@@ -2058,9 +2065,8 @@ function kursTermine(kurs) {
 }
 function istAusfall(kurs, iso) { return (kurs.ausfall || []).includes(iso); }
 function addAusfall(kursId) {
-    const inp = document.getElementById('ausfall-add-' + kursId);
-    const iso = inp ? inp.value : '';
-    if (!iso) { alert('Bitte erst ein Datum auswählen.'); return; }
+    const iso = anwesenheitDatum;
+    if (!iso) return;
     const kurs = getKurs(kursId); if (!kurs) return;
     if (!kurs.ausfall) kurs.ausfall = [];
     if (!kurs.ausfall.includes(iso)) kurs.ausfall.push(iso);
@@ -2174,8 +2180,7 @@ function renderAnwesenheit() {
                 </div>
                 <div class="anw-ausfall-manage">
                     <span class="anw-block-label">🚫 Ausfalltage:</span>
-                    <input type="date" class="anw-block-input" id="ausfall-add-${kurs.id}" value="${anwesenheitDatum}">
-                    <button class="anw-ausfall-add" onclick="addAusfall('${kurs.id}')">➕ Eintragen</button>
+                    <button class="anw-ausfall-add" onclick="addAusfall('${kurs.id}')" title="Den oben angezeigten Tag als Ausfall eintragen">➕ Diesen Tag eintragen</button>
                 </div>
                 <div class="anw-ausfall-chips">${ausfallChips || '<span class="anw-ausfall-keine">keine Ausfalltage</span>'}</div>
             </div>
@@ -2471,6 +2476,10 @@ function logbookInnerHTML(kind) {
             : `<span class="lb-abz-datum-trigger trainer-only" id="abz-${kind.id}-${stufe.id}" onclick="event.stopPropagation();showAbzDatumInput('${kind.id}','${stufe.id}','abz-${kind.id}-${stufe.id}')"></span>`
         }</div>` : ''}
         <div class="logbook-tabs">${tabs}</div>
+        ${stufe.anforderungen.length ? `<label class="lb-stufe-komplett">
+            <input type="checkbox" ${stufeKomplett ? 'checked' : ''} onclick="event.stopPropagation();toggleStufeKomplett('${kind.id}','${stufe.id}',this.checked)">
+            <span>${seite > 1 ? 'Diese Stufe &amp; alle davor als geschafft markieren' : 'Ganze Stufe als geschafft markieren'}${stufeKomplett ? ' ✓' : ''}</span>
+        </label>` : ''}
         <div>${body}</div>
         <div class="logbook-actions trainer-only">
             <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openEditKind('${kind.id}')" style="flex:1">✏ Kind bearbeiten</button>
@@ -2550,6 +2559,39 @@ function toggleAufgabe(kindId, stufeId, anfId, checked) {
     const p = getStufenProgress(kind, stufeId);
     if (!(p.total > 0 && p.done === p.total)) {
         delete kind.progress[stufeId]['_abzeichen_datum'];
+    }
+    save();
+    const panel = document.getElementById('logbook-panel');
+    if (panel) panel.innerHTML = logbookInnerHTML(kind);
+    const sum = document.getElementById('kindsum-' + kindId);
+    if (sum) sum.innerHTML = kindSummaryInner(kind);
+}
+
+// Ganze Stufe auf einmal als geschafft/nicht-geschafft markieren (zum Überspringen niedriger Abzeichen)
+// Beim Abhaken werden auch ALLE Stufen davor automatisch mit als geschafft markiert,
+// damit man höhere Abzeichen erreichen kann, ohne jede niedrigere Stufe einzeln abzuhaken.
+function toggleStufeKomplett(kindId, stufeId, checked) {
+    const kind = kindObj(kindId); if (!kind) return;
+    const st = getStufe(stufeId); if (!st) return;
+    const stufeIdx = state.badges.findIndex(b => b.id === stufeId);
+    if (!checked && !confirm('Alle Haken dieser Stufe wieder entfernen?')) {
+        const p0 = document.getElementById('logbook-panel');
+        if (p0) p0.innerHTML = logbookInnerHTML(kind);   // Häkchen zurücksetzen
+        return;
+    }
+    if (!kind.progress) kind.progress = {};
+    if (checked) {
+        // diese Stufe UND alle Stufen davor auf einmal abhaken → niedrigere Abzeichen überspringen
+        for (let i = 0; i <= stufeIdx; i++) {
+            const lvl = state.badges[i];
+            if (!kind.progress[lvl.id]) kind.progress[lvl.id] = {};
+            lvl.anforderungen.forEach(a => { kind.progress[lvl.id][a.id] = true; });
+        }
+    } else {
+        if (!kind.progress[stufeId]) kind.progress[stufeId] = {};
+        const p = kind.progress[stufeId];
+        st.anforderungen.forEach(a => { delete p[a.id]; delete p[a.id + '_datum']; });
+        delete p['_abzeichen_datum'];
     }
     save();
     const panel = document.getElementById('logbook-panel');
