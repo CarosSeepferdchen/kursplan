@@ -378,6 +378,14 @@
             font-size: 0.74rem;
         }
         .kurs-actions { display: flex; gap: 0.4rem; align-items: center; flex-shrink: 0; }
+        .kurs-fav {
+            background: none; border: none; cursor: pointer; font-family: inherit;
+            font-size: 1.15rem; line-height: 1; color: #cbd5e1; padding: 0;
+            margin-right: 0.35rem; vertical-align: middle; flex-shrink: 0;
+            transition: transform 0.12s, color 0.12s; -webkit-tap-highlight-color: transparent;
+        }
+        .kurs-fav:hover { transform: scale(1.18); }
+        .kurs-fav.is-fav { color: #f59e0b; }
         .icon-btn {
             background: white;
             border: 1.5px solid #e2e8f0;
@@ -912,6 +920,41 @@
             transition: background 0.15s; flex-shrink: 0;
         }
         .anw-share-btn:hover { background: #ffedd5; }
+        .anw-fav-btn {
+            padding: 0.25rem 0.8rem; border-radius: 99px;
+            border: 1.5px solid #fcd34d; background: #fffbeb; color: #b45309;
+            font-size: 0.78rem; font-weight: 700; cursor: pointer; font-family: inherit;
+            transition: background 0.15s; flex-shrink: 0;
+        }
+        .anw-fav-btn:hover { background: #fef3c7; }
+        .anw-fav-btn.active { background: #f59e0b; border-color: #f59e0b; color: white; }
+        .kurse-stat-btn {
+            padding: 0.25rem 0.8rem; border-radius: 99px;
+            border: 1.5px solid #93c5fd; background: #eff6ff; color: #1d4ed8;
+            font-size: 0.78rem; font-weight: 700; cursor: pointer; font-family: inherit;
+            transition: background 0.15s; flex-shrink: 0;
+        }
+        .kurse-stat-btn:hover { background: #dbeafe; }
+        /* ── Abzeichen-Übersicht (Balkendiagramm) ── */
+        .abz-stat-sub { font-size: 0.85rem; color: #475569; margin-bottom: 0.9rem; }
+        .abz-stat-item { margin-bottom: 0.6rem; }
+        .abz-stat-row { display: flex; align-items: center; gap: 0.55rem; border-radius: 8px; padding: 0.12rem 0.15rem; }
+        .abz-stat-row[onclick]:hover { background: #f8fafc; }
+        .abz-stat-caret { flex: 0 0 auto; font-size: 0.72rem; color: #94a3b8; transition: transform 0.2s; }
+        .abz-stat-item.open .abz-stat-caret { transform: rotate(90deg); }
+        .abz-stat-namen { display: none; flex-wrap: wrap; gap: 0.3rem; padding: 0.35rem 0.2rem 0.1rem 1.7rem; }
+        .abz-stat-item.open .abz-stat-namen { display: flex; }
+        .abz-stat-kind { background: #eef2f7; border-radius: 99px; padding: 0.18rem 0.6rem; font-size: 0.76rem; font-weight: 600; color: #334155; }
+        .abz-stat-name {
+            flex: 0 0 7.2rem; display: flex; align-items: center; gap: 0.4rem;
+            font-size: 0.78rem; font-weight: 700; color: #334155;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .abz-stat-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .abz-stat-track { flex: 1; height: 22px; background: #f1f5f9; border-radius: 7px; overflow: hidden; }
+        .abz-stat-fill { height: 100%; border-radius: 7px; min-width: 0; transition: width 0.35s ease; }
+        .abz-stat-count { flex: 0 0 auto; min-width: 1.5rem; text-align: right; font-size: 0.9rem; font-weight: 800; color: #0f172a; }
+        .abz-stat-empty { font-size: 0.92rem; color: #64748b; text-align: center; padding: 1.5rem 0; }
         .anw-share-toolbar { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.55rem; }
         .anw-share-count { font-size: 0.8rem; color: #64748b; font-weight: 700; margin-left: auto; }
         .anw-chip-btn {
@@ -1304,6 +1347,7 @@
         </div>
         <div class="kurse-daybar">
             <div class="chips-row" id="day-chips"></div>
+            <button class="kurse-stat-btn" onclick="oeffneAbzeichenStatistik()">📊 Abzeichen</button>
             <button class="anw-share-btn" onclick="oeffneKursTeilen()">📄 Teilen</button>
         </div>
         <div id="kurse-list"></div>
@@ -1318,7 +1362,8 @@
         <div class="anw-dateline">
             <span class="anw-weekday" id="anw-weekday"></span>
             <button class="anw-heute-btn" id="anw-heute-btn" onclick="anwHeute()">Heute</button>
-            <button class="anw-share-btn" onclick="oeffneAnwTeilen()" style="margin-left:auto">📄 Teilen</button>
+            <button class="anw-fav-btn" id="anw-fav-btn" onclick="toggleAnwFavFilter()" style="margin-left:auto" title="Nur Favoriten-Kurse zeigen">★ Favoriten</button>
+            <button class="anw-share-btn" onclick="oeffneAnwTeilen()">📄 Teilen</button>
         </div>
         <div id="anwesenheit-list"></div>
     </div>
@@ -1514,6 +1559,17 @@
     </div>
 </div>
 
+<!-- Abzeichen-Übersicht (Grafik) -->
+<div class="modal-bg" id="modal-abz-stat">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 class="modal-title" id="abz-stat-title">Abzeichen-Übersicht</h2>
+            <button class="modal-close" onclick="closeModal('modal-abz-stat')">×</button>
+        </div>
+        <div id="abz-stat-body"></div>
+    </div>
+</div>
+
 <!-- Stufe (Abzeichen) bearbeiten -->
 <div class="modal-bg" id="modal-badge">
     <div class="modal-box">
@@ -1588,7 +1644,11 @@ function _kurseNachZeit() {
     );
 }
 function kursFarbe(kursId) {
-    const idx = _kurseNachZeit().findIndex(k => k.id === kursId);
+    const kurs = state.kurse.find(k => k.id === kursId);
+    const von = (kurs && kurs.von) || '99:99';
+    // Farbe pro eindeutiger Startzeit (in Zeit-Reihenfolge) → gleiche Uhrzeit = gleiche Farbe
+    const zeiten = [...new Set(state.kurse.map(k => k.von || '99:99'))].sort((a, b) => a.localeCompare(b));
+    const idx = zeiten.indexOf(von);
     return KURS_FARBEN[Math.max(0, idx) % KURS_FARBEN.length];
 }
 
@@ -1651,6 +1711,7 @@ let currentDay = HEUTE;          // 0-6 oder 'alle'
 let expandedKindId = null;       // welches Kind ist aufgeklappt
 let logbookPage = null;          // welche Stufe wird im Logbuch gezeigt
 let anwesenheitDatum = null;     // gewähltes Datum (YYYY-MM-DD) im Anwesenheit-Tab
+let anwNurFavoriten = false;     // Anwesenheit-Tab: nur Favoriten-Kurse zeigen
 
 // ── Storage ──────────────────────────────────────────────────────
 
@@ -1848,6 +1909,16 @@ function alleStufenFertig(kind) {
     });
 }
 
+// Höchstes vollständig erreichtes Abzeichen eines Kindes (oder null = noch keins)
+function hoechstesAbzeichen(kind) {
+    let result = null;
+    for (const st of state.badges) {
+        const p = getStufenProgress(kind, st.id);
+        if (p.total > 0 && p.done === p.total) result = st;   // letztes komplettes = höchstes
+    }
+    return result;
+}
+
 function kurseAmTag(tag) {
     return state.kurse.filter(k => k.wochentag === tag).sort((a, b) =>
         (a.von || '99:99').localeCompare(b.von || '99:99') || a.name.localeCompare(b.name, 'de')
@@ -2017,7 +2088,7 @@ function renderKursTrainingCard(kursId) {
     return `<div class="kurs-card" id="training-card-${kursId}" style="border-left-color:${cf.farbe};margin-bottom:1.1rem">
         <div class="kurs-card-head" style="background:${cf.hell}">
             <div class="kurs-head-left">
-                <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
+                <div class="kurs-title" style="color:${cf.farbe}"><button class="kurs-fav ${kurs.favorit ? 'is-fav' : ''}" onclick="event.stopPropagation();toggleFavorit('${kurs.id}')" title="${kurs.favorit ? 'Favorit entfernen' : 'Als Favorit markieren'}">${kurs.favorit ? '★' : '☆'}</button>${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
                 <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}</div>
             </div>
         </div>
@@ -2095,6 +2166,11 @@ function anwHeute() {
     renderAnwesenheit();
 }
 
+function toggleAnwFavFilter() {
+    anwNurFavoriten = !anwNurFavoriten;
+    renderAnwesenheit();
+}
+
 function shiftAnwWoche(delta) {
     const d = new Date((anwesenheitDatum || isoAnwHeute()) + 'T00:00:00');
     d.setDate(d.getDate() + delta * 7);   // eine ganze Woche vor/zurück
@@ -2133,11 +2209,16 @@ function renderAnwesenheit() {
     if (wd) wd.textContent = d.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }) + ' · KW ' + getISOWeek(d) + (anwesenheitDatum === heuteISO ? ' (heute)' : '');
     const hb = document.getElementById('anw-heute-btn');
     if (hb) hb.style.display = (anwesenheitDatum === heuteISO) ? 'none' : 'inline-block';
+    const fb = document.getElementById('anw-fav-btn');
+    if (fb) fb.classList.toggle('active', anwNurFavoriten);
 
     const wrap = document.getElementById('anwesenheit-list');
-    const kurse = kurseAmTag(tag);
+    let kurse = kurseAmTag(tag);
+    if (anwNurFavoriten) kurse = kurse.filter(k => k.favorit);
     if (!kurse.length) {
-        wrap.innerHTML = `<div class="empty-state"><h3>Kein Kurs am ${WOCHENTAGE[tag]}</h3><p>An diesem Wochentag findet kein Kurs statt. Wähle ein anderes Datum.</p></div>`;
+        wrap.innerHTML = anwNurFavoriten
+            ? `<div class="empty-state"><h3>Keine Favoriten-Kurse am ${WOCHENTAGE[tag]}</h3><p>Tippe „★ Favoriten" wieder aus, um alle Kurse zu sehen.</p></div>`
+            : `<div class="empty-state"><h3>Kein Kurs am ${WOCHENTAGE[tag]}</h3><p>An diesem Wochentag findet kein Kurs statt. Wähle ein anderes Datum.</p></div>`;
         return;
     }
 
@@ -2165,7 +2246,7 @@ function renderAnwesenheit() {
         return `<div class="kurs-card${ausgefallen ? ' kurs-ausgefallen' : ''}" style="border-left-color:${cf.farbe};margin-bottom:1.1rem">
             <div class="kurs-card-head" style="background:${cf.hell}">
                 <div class="kurs-head-left">
-                    <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
+                    <div class="kurs-title" style="color:${cf.farbe}"><button class="kurs-fav ${kurs.favorit ? 'is-fav' : ''}" onclick="event.stopPropagation();toggleFavorit('${kurs.id}')" title="${kurs.favorit ? 'Favorit entfernen' : 'Als Favorit markieren'}">${kurs.favorit ? '★' : '☆'}</button>${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
                     <div class="kurs-sub">${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}</div>
                 </div>
                 ${!ausgefallen && kinder.length ? `<div class="anw-count" id="attendance-sum-${kurs.id}-${key}">${anwesend} von ${kinder.length} anwesend</div>` : ''}
@@ -2305,9 +2386,21 @@ function toggleAnwesenheit(kursId, kw, kindId, checked) {
 
 function setDay(d) { currentDay = d; expandedKindId = null; renderKurse(); }
 
+// Favoriten-Stern umschalten — wirkt überall (Kurse, Anwesenheit, Training), da auf dem Kurs gespeichert
+function toggleFavorit(kursId) {
+    const kurs = getKurs(kursId); if (!kurs) return;
+    kurs.favorit = !kurs.favorit;
+    save();
+    if (!document.getElementById('tab-kurse').hidden)       renderKurse();
+    if (!document.getElementById('tab-anwesenheit').hidden) renderAnwesenheit();
+    if (!document.getElementById('tab-training').hidden)    renderTraining();
+}
+
 function renderDayChips() {
     const row = document.getElementById('day-chips');
+    const favCnt = state.kurse.filter(k => k.favorit).length;
     let html = `<button class="chip ${currentDay === 'alle' ? 'chip-active' : ''}" onclick="setDay('alle')">Alle</button>`;
+    html += `<button class="chip ${currentDay === 'favoriten' ? 'chip-active' : ''}" onclick="setDay('favoriten')" title="Nur Favoriten-Kurse">★${favCnt ? ' ' + favCnt : ''}</button>`;
     WOCHENTAGE_KURZ.forEach((kurz, i) => {
         const cnt = state.kurse.filter(k => k.wochentag === i).length;
         const active = currentDay === i;
@@ -2346,6 +2439,10 @@ function renderKurse() {
         } else if (!kinderOhneKurs().length) {
             html += emptyKurseHTML();
         }
+    } else if (currentDay === 'favoriten') {
+        const favs = _kurseNachZeit().filter(k => k.favorit);
+        if (favs.length) favs.forEach(kurs => html += kursCardHTML(kurs));
+        else html += `<div class="empty-state"><h3>Noch keine Favoriten</h3><p>Tippe bei einem Kurs auf den Stern ☆, um ihn als Favorit zu markieren.</p></div>`;
     } else {
         const kurse = kurseAmTag(currentDay);
         if (kurse.length) kurse.forEach(kurs => html += kursCardHTML(kurs));
@@ -2379,7 +2476,7 @@ function kursCardHTML(kurs) {
     return `<div class="kurs-card" style="border-left-color:${cf.farbe}">
         <div class="kurs-card-head" style="background:${cf.hell}">
             <div class="kurs-head-left">
-                <div class="kurs-title" style="color:${cf.farbe}">${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
+                <div class="kurs-title" style="color:${cf.farbe}"><button class="kurs-fav ${kurs.favorit ? 'is-fav' : ''}" onclick="event.stopPropagation();toggleFavorit('${kurs.id}')" title="${kurs.favorit ? 'Favorit entfernen' : 'Als Favorit markieren'}">${kurs.favorit ? '★' : '☆'}</button>${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
                 <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}${blockLabel(kurs)} · ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</div>
             </div>
             <div class="kurs-actions">
@@ -2696,7 +2793,7 @@ function openAddKurs() {
     document.getElementById('kurs-jahrgang-bis').value = '';
     document.getElementById('kurs-von').value = '';
     document.getElementById('kurs-bis').value = '';
-    fillTagSelect(currentDay === 'alle' ? HEUTE : currentDay);
+    fillTagSelect((currentDay === 'alle' || currentDay === 'favoriten') ? HEUTE : currentDay);
     openModal('modal-kurs');
     setTimeout(() => document.getElementById('kurs-name').focus(), 60);
 }
@@ -3167,14 +3264,79 @@ function kursPDFBlock(kurs) {
 }
 
 // Auswahl-Dialog beim Kurse-Teilen: ganzer Tag, ein Kurs oder ein Kind
+// Grafik: wie viele Kinder des Tages welches (höchste) Abzeichen haben
+function oeffneAbzeichenStatistik() {
+    const tag = currentDay;
+    let kurse = [];
+    if (tag === 'alle') { WOCHENTAGE.forEach((_, i) => kurse.push(...kurseAmTag(i))); }
+    else if (tag === 'favoriten') { kurse = _kurseNachZeit().filter(k => k.favorit); }
+    else { kurse = kurseAmTag(tag); }
+    const kinder = [];
+    kurse.forEach(k => kinder.push(...kinderImKurs(k.id)));
+
+    const tagName = tag === 'alle' ? 'Alle Tage' : (tag === 'favoriten' ? '★ Favoriten' : WOCHENTAGE[tag]);
+    document.getElementById('abz-stat-title').textContent = 'Abzeichen-Übersicht — ' + tagName;
+    const bodyEl = document.getElementById('abz-stat-body');
+
+    if (!kinder.length) {
+        bodyEl.innerHTML = `<div class="abz-stat-empty">Keine Kinder ${tag === 'alle' ? 'vorhanden' : 'am ' + tagName}.</div>`;
+        openModal('modal-abz-stat');
+        return;
+    }
+
+    // Kinder in Eimer einsortieren: "Kein Abzeichen" + pro Stufe
+    const buckets = [{ id: '_ohne', name: 'Kein Abzeichen', farbe: '#94a3b8', kinder: [] }];
+    state.badges.forEach(st => buckets.push({ id: st.id, name: st.name, farbe: st.farbe, kinder: [] }));
+    const byId = {};
+    buckets.forEach(b => byId[b.id] = b);
+    kinder.forEach(k => {
+        const abz = hoechstesAbzeichen(k);
+        byId[abz ? abz.id : '_ohne'].kinder.push(k);
+    });
+    buckets.forEach(b => b.kinder.sort((a, c) => a.name.localeCompare(c.name, 'de')));
+
+    const maxCount = Math.max(1, ...buckets.map(b => b.kinder.length));
+    const total = kinder.length;
+
+    const rowHTML = (b) => {
+        const count = b.kinder.length;
+        const pct = count ? Math.max(Math.round(count / maxCount * 100), 5) : 0;
+        const namen = count
+            ? `<div class="abz-stat-namen">${b.kinder.map(k => `<span class="abz-stat-kind">${esc(k.name)}</span>`).join('')}</div>`
+            : '';
+        return `<div class="abz-stat-item">
+            <div class="abz-stat-row" ${count ? 'onclick="toggleAbzNamen(this)"' : 'style="cursor:default"'}>
+                <span class="abz-stat-name" title="${esc(b.name)}"><span class="abz-stat-dot" style="background:${b.farbe}"></span>${esc(b.name)}</span>
+                <div class="abz-stat-track"><div class="abz-stat-fill" style="width:${pct}%;background:${b.farbe}"></div></div>
+                <span class="abz-stat-count">${count}</span>
+                <span class="abz-stat-caret" style="${count ? '' : 'visibility:hidden'}">▸</span>
+            </div>
+            ${namen}
+        </div>`;
+    };
+
+    let html = `<div class="abz-stat-sub">${total} Kind${total !== 1 ? 'er' : ''} · höchstes erreichtes Abzeichen · zum Aufklappen tippen</div>`;
+    buckets.forEach(b => { html += rowHTML(b); });
+
+    bodyEl.innerHTML = html;
+    openModal('modal-abz-stat');
+}
+
+// Klick auf eine Balken-Zeile → Namen der Kinder dieser Stufe ein-/ausklappen
+function toggleAbzNamen(rowEl) {
+    const item = rowEl.closest('.abz-stat-item');
+    if (item) item.classList.toggle('open');
+}
+
 function oeffneKursTeilen() {
     const tag = currentDay;
     let kurse = [];
     if (tag === 'alle') { WOCHENTAGE.forEach((_, i) => kurse.push(...kurseAmTag(i))); }
+    else if (tag === 'favoriten') { kurse = _kurseNachZeit().filter(k => k.favorit); }
     else { kurse = kurseAmTag(tag); }
     if (!kurse.length) { alert('Keine Kurse für diesen Tag.'); return; }
 
-    const tagName = tag === 'alle' ? 'Alle Tage' : WOCHENTAGE[tag];
+    const tagName = tag === 'alle' ? 'Alle Tage' : (tag === 'favoriten' ? '★ Favoriten' : WOCHENTAGE[tag]);
     document.getElementById('teilen-title').textContent = 'Teilen — ' + tagName;
     let html = `<button class="teilen-ganztag" onclick="closeModal('modal-teilen');teilen()">📅 Ganzer Tag · alle Kurse</button>`;
     kurse.forEach(kurs => {
@@ -3199,9 +3361,10 @@ function teilen() {
     const tag = currentDay;
     let kurse = [];
     if (tag === 'alle') { WOCHENTAGE.forEach((_, i) => kurse.push(...kurseAmTag(i))); }
+    else if (tag === 'favoriten') { kurse = _kurseNachZeit().filter(k => k.favorit); }
     else { kurse = kurseAmTag(tag); }
     if (!kurse.length) { alert('Keine Kurse für diesen Tag.'); return; }
-    const tagName = tag === 'alle' ? 'Alle Tage' : WOCHENTAGE[tag];
+    const tagName = tag === 'alle' ? 'Alle Tage' : (tag === 'favoriten' ? '★ Favoriten' : WOCHENTAGE[tag]);
     const datum = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const body = kurse.map(kursPDFBlock).join('');
     const dateiname = `CarosSeepferdchen_${tagName}_${datum.replace(/\./g,'-')}.pdf`;
