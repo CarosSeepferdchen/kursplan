@@ -14,6 +14,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
     <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <title>Caros Seepferdchen</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1292,9 +1293,50 @@
         .sync-syncing { background: #fbbf24; animation: cloudPulse 1s infinite; }
         .sync-offline { background: #94a3b8; }
 
+        /* ── Login / Cloud ── */
+        .auth-overlay {
+            position: fixed; inset: 0; z-index: 500;
+            background: linear-gradient(160deg, #0369a1, #0c4a6e);
+            display: flex; align-items: center; justify-content: center; padding: 1.2rem;
+        }
+        .auth-overlay[hidden] { display: none; }
+        .auth-box {
+            background: white; border-radius: 18px; padding: 1.8rem 1.5rem;
+            width: 100%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+            display: flex; flex-direction: column; gap: 0.7rem;
+        }
+        .auth-logo { font-size: 1.25rem; font-weight: 800; text-align: center; color: #0c4a6e; }
+        .auth-sub { font-size: 0.9rem; color: #64748b; text-align: center; margin-bottom: 0.4rem; }
+        .auth-input {
+            padding: 0.7rem 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 10px;
+            font-size: 1rem; font-family: inherit; -webkit-appearance: none;
+        }
+        .auth-input:focus { outline: none; border-color: #0ea5e9; }
+        .auth-submit {
+            margin-top: 0.3rem; padding: 0.75rem; border: none; border-radius: 10px;
+            background: #0ea5e9; color: white; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit;
+        }
+        .auth-submit:hover { background: #0284c7; }
+        .auth-submit:disabled { opacity: 0.6; cursor: default; }
+        .auth-error { color: #dc2626; font-size: 0.85rem; text-align: center; min-height: 1.1rem; }
+        .header-user { display: flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; color: rgba(255,255,255,0.9); max-width: 11rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cloud-dot { width: 9px; height: 9px; border-radius: 50%; background: #94a3b8; flex-shrink: 0; transition: background 0.2s; }
+        .cloud-dot.ok { background: #22c55e; }
+        .cloud-dot.sync { background: #f59e0b; }
+        .cloud-dot.err { background: #ef4444; }
     </style>
 </head>
 <body>
+<div id="auth-overlay" class="auth-overlay">
+    <div class="auth-box">
+        <div class="auth-logo">🐢 Caros Seepferdchen</div>
+        <div class="auth-sub">Bitte mit deinem Trainer-Konto anmelden</div>
+        <input id="auth-email" class="auth-input" type="email" placeholder="E-Mail" autocomplete="username" autocapitalize="none">
+        <input id="auth-pass" class="auth-input" type="password" placeholder="Passwort" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+        <button id="auth-btn" class="auth-submit" onclick="doLogin()">Anmelden</button>
+        <div id="auth-error" class="auth-error"></div>
+    </div>
+</div>
 <div class="water-shimmer" aria-hidden="true"></div>
 <div class="turtle-layer" aria-hidden="true">
     <div class="turtle turtle-a"><svg viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
@@ -1327,7 +1369,9 @@
 <header class="header">
     <div class="header-title"><img src="icon-192.png" style="height:1.9rem;width:1.9rem;border-radius:50%;flex-shrink:0;object-fit:cover"> Caros Seepferdchen</div>
     <div class="header-actions">
+        <span class="header-user" id="header-user"><span class="cloud-dot" id="cloud-dot" title="Cloud-Status"></span><span id="header-user-email"></span></span>
         <button class="header-btn" id="backup-btn" onclick="openBackupModal()" title="Daten sichern">🛟 Sicherung<span class="backup-warn-dot" id="backup-warn-dot" style="display:none"></span></button>
+        <button class="header-btn" id="logout-btn" onclick="doLogout()" title="Abmelden" style="display:none">Abmelden</button>
     </div>
 </header>
 
@@ -1608,6 +1652,7 @@
             <button class="modal-close" onclick="closeModal('modal-backup')">×</button>
         </div>
         <div id="backup-status" style="font-size:.85rem;font-weight:600;margin-bottom:.4rem"></div>
+        <div id="backup-cloud-status" style="font-size:.8rem;margin-bottom:.9rem;color:#0369a1"></div>
         <div style="display:flex;gap:.6rem;margin-bottom:.6rem">
             <button class="btn btn-primary" onclick="exportData()" style="flex:1">💾 Sicherung speichern</button>
             <button class="btn btn-secondary" onclick="document.getElementById('backup-file-input').click()" style="flex:1">📂 Sicherung laden</button>
@@ -1623,6 +1668,8 @@
 <script>
 const STORAGE_KEY = 'schwimmtrainer_v1';
 const LASTEXPORT_KEY = 'schwimmtrainer_lastexport'; // Zeitpunkt der letzten Datei-Sicherung
+const SERVER_BACKUP_KEY = 'schwimmtrainer_lastserver'; // letzte automatische Dropbox-Sicherung
+let syncTimer = null;
 
 const WOCHENTAGE = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 const WOCHENTAGE_KURZ = ['Mo','Di','Mi','Do','Fr','Sa','So'];
@@ -1764,7 +1811,82 @@ function load() {
 
 function save() {
     state._savedAt = Date.now();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));   // Offline-Puffer
+    schedulePush();                                             // in die Cloud (debounced)
+}
+
+// ── Mac ↔ iPhone Sync ─────────────────────────────────────────────
+async function syncOnStart() {
+    // Gibt true zurück wenn der state aktualisiert wurde (damit initApp neu rendert)
+    if (location.protocol !== 'http:') return false;
+    try {
+        const res = await fetch('/data', { signal: AbortSignal.timeout(2000) });
+        if (!res.ok) return false;
+        const server = await res.json();
+        if (!server?.kinder) return false;
+        const localTs  = state._savedAt  || 0;
+        const serverTs = server._savedAt || 0;
+        if (serverTs > localTs) {
+            // Festplatte / anderes Gerät hat neuere Daten → übernehmen
+            const dateien = state.dateien || {};
+            state = normalizeState(server);
+            state.dateien = dateien;
+            ensureStufen();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            expandedKindId = null;
+            setSyncDot('synced');
+            return true; // state hat sich geändert
+        } else if (localTs > serverTs && localTs > 0) {
+            await pushToServer();
+        } else {
+            setSyncDot('synced');
+        }
+    } catch(e) { setSyncDot('offline'); }
+    return false;
+}
+
+async function pushToServer() {
+    if (location.protocol !== 'http:') return;
+    setSyncDot('syncing');
+    try {
+        const res = await fetch('/data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(state)
+        });
+        if (res.ok) {
+            setSyncDot('synced');
+            doServerBackupNow();
+        } else { setSyncDot('offline'); }
+    } catch(e) { setSyncDot('offline'); }
+}
+
+// ── Automatische Dropbox-Sicherung (über lokalen Server) ──────────
+let serverBackupTimer = null;
+function serverBackupDebounced() {
+    clearTimeout(serverBackupTimer);
+    serverBackupTimer = setTimeout(doServerBackupNow, 2000);
+}
+async function doServerBackupNow() {
+    if (location.protocol !== 'http:') return;
+    try {
+        const res = await fetch('/backup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(state)
+        });
+        if (res.ok) {
+            localStorage.setItem(SERVER_BACKUP_KEY, String(Date.now()));
+            if (document.getElementById('modal-backup')?.classList.contains('open')) renderBackupList();
+        }
+    } catch(e) { /* Server nicht erreichbar → lokale Sicherung reicht */ }
+}
+
+function setSyncDot(status) {
+    const dot = document.getElementById('sync-dot');
+    if (!dot) return;
+    dot.className = 'sync-dot sync-' + status;
+    dot.title = { synced:'Gespeichert ✓', syncing:'Wird gespeichert…', offline:'Offline — lokal gespeichert' }[status] || '';
 }
 
 function exportData() {
@@ -1854,6 +1976,19 @@ function renderBackupList() {
         } else {
             statusEl.innerHTML = '⚠️ Noch keine Sicherungsdatei gespeichert — bitte einmal „Sicherung speichern".';
             statusEl.style.color = '#c2410c';
+        }
+    }
+    const cloudEl = document.getElementById('backup-cloud-status');
+    if (cloudEl) {
+        const ls = localStorage.getItem(SERVER_BACKUP_KEY);
+        if (ls) {
+            const d = new Date(Number(ls));
+            const heute = d.toLocaleDateString('de-DE') === new Date().toLocaleDateString('de-DE');
+            const wann = heute ? 'heute ' + d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})
+                               : d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
+            cloudEl.innerHTML = '☁️ Automatisch in Dropbox gesichert: ' + wann + ' ✓';
+        } else {
+            cloudEl.innerHTML = '☁️ Automatische Dropbox-Sicherung aktiv (sichert beim nächsten Ändern).';
         }
     }
 }
@@ -3381,6 +3516,114 @@ function teileKurs(kursId) {
     pdfFensterOeffnen(kurs.name, datum, body, dateiname);
 }
 
+// ── Supabase: Konten + Cloud-Sync ─────────────────────────────────
+const SUPABASE_URL = 'https://wynqhblgldhivfwaypxc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_HOB7V_4HhCHl1ykKEIiuhA_Oi1IA__r';
+const supa = (window.supabase && window.supabase.createClient)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+let supaUser = null;
+let isAdmin  = false;
+let cloudTimer = null;
+
+function setCloudDot(status) {            // '', 'ok', 'sync', 'err'
+    const d = document.getElementById('cloud-dot');
+    if (d) d.className = 'cloud-dot ' + (status || '');
+    if (d) d.title = { ok:'In der Cloud gespeichert ✓', sync:'Wird gespeichert…', err:'Offline — lokal gespeichert' }[status] || 'Cloud-Status';
+}
+function isEmptyState(s) {
+    return !s || ((!s.kinder || !s.kinder.length) && (!s.kurse || !s.kurse.length));
+}
+
+async function boot() {
+    if (!supa) { startApp(); return; }   // Bibliothek nicht geladen (offline) → lokal weiterarbeiten
+    let session = null;
+    try { const { data } = await supa.auth.getSession(); session = data && data.session; } catch(e) {}
+    if (session) await afterLogin(session.user);
+    else showLogin();
+}
+
+function showLogin() {
+    const ov = document.getElementById('auth-overlay');
+    if (ov) ov.hidden = false;
+    setTimeout(() => { const e = document.getElementById('auth-email'); if (e) e.focus(); }, 80);
+}
+
+async function doLogin() {
+    const email = (document.getElementById('auth-email').value || '').trim();
+    const pass  = document.getElementById('auth-pass').value || '';
+    const errEl = document.getElementById('auth-error');
+    const btn   = document.getElementById('auth-btn');
+    if (!email || !pass) { errEl.textContent = 'Bitte E-Mail und Passwort eingeben.'; return; }
+    btn.disabled = true; btn.textContent = 'Anmelden…'; errEl.textContent = '';
+    const { data, error } = await supa.auth.signInWithPassword({ email, password: pass });
+    btn.disabled = false; btn.textContent = 'Anmelden';
+    if (error) { errEl.textContent = 'Anmeldung fehlgeschlagen – E-Mail/Passwort prüfen.'; return; }
+    document.getElementById('auth-pass').value = '';
+    await afterLogin(data.user);
+}
+
+async function afterLogin(user) {
+    supaUser = user;
+    const ov = document.getElementById('auth-overlay');
+    if (ov) ov.hidden = true;
+    const lo = document.getElementById('logout-btn');
+    if (lo) lo.style.display = '';
+    try {
+        const { data: prof } = await supa.from('profiles').select('is_admin').eq('id', user.id).single();
+        isAdmin = !!(prof && prof.is_admin);
+    } catch(e) { isAdmin = false; }
+    const em = document.getElementById('header-user-email');
+    if (em) em.textContent = user.email + (isAdmin ? ' · Admin' : '');
+    await loadFromCloud();
+    startApp();
+}
+
+async function loadFromCloud() {
+    setCloudDot('sync');
+    try {
+        const { data, error } = await supa.from('trainer_data').select('state').eq('user_id', supaUser.id).maybeSingle();
+        if (error) throw error;
+        if (data && !isEmptyState(data.state)) {
+            state = normalizeState(data.state);
+            ensureStufen();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } else if (!isEmptyState(state)) {
+            await pushToCloud();             // Cloud leer, lokal Daten da → Erstmigration hochladen
+        }
+        setCloudDot('ok');
+    } catch(e) {
+        setCloudDot('err');                  // offline → lokaler Stand (aus load()) bleibt
+    }
+}
+
+function schedulePush() {
+    if (!supa || !supaUser) return;
+    clearTimeout(cloudTimer);
+    setCloudDot('sync');
+    cloudTimer = setTimeout(pushToCloud, 1200);
+}
+
+async function pushToCloud() {
+    if (!supa || !supaUser) return;
+    try {
+        const { error } = await supa.from('trainer_data')
+            .upsert({ user_id: supaUser.id, state: state, updated_at: new Date().toISOString() });
+        setCloudDot(error ? 'err' : 'ok');
+    } catch(e) { setCloudDot('err'); }
+}
+
+async function doLogout() {
+    if (!confirm('Abmelden? Deine Daten bleiben in der Cloud gespeichert.')) return;
+    try { await supa.auth.signOut(); } catch(e) {}
+    location.reload();
+}
+
+// Rendern (das, was der Start früher direkt gemacht hat)
+function startApp() {
+    renderKurse();
+    updateBackupWarnDot();
+}
+
 // ── Init ──────────────────────────────────────────────────────────
 
 load();
@@ -3429,8 +3672,8 @@ load();
 }());
 
 (function initApp() {
-    renderKurse();
-    updateBackupWarnDot();
+    // Login prüfen → bei Sitzung Daten aus der Cloud laden, sonst Login zeigen.
+    boot();
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
