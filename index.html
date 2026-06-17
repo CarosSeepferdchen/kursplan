@@ -1039,46 +1039,6 @@
         .teilen-leer { font-size: 0.8rem; color: #94a3b8; font-style: italic; padding: 0.35rem 0.7rem; }
 
         /* Anleitung-Seite */
-        .guide { max-width: 760px; margin: 0 auto; padding-bottom: 1rem; }
-        .guide-hero {
-            background: linear-gradient(150deg, #e0f2fe 0%, #f0f9ff 100%);
-            border: 1px solid #bae6fd; border-radius: 16px;
-            padding: 1.3rem 1.4rem; margin-bottom: 1.1rem; text-align: center;
-        }
-        .guide-hero h2 { font-size: 1.35rem; color: #0c4a6e; margin-bottom: 0.4rem; }
-        .guide-hero p { color: #475569; font-size: 0.95rem; line-height: 1.55; }
-        .guide-sec {
-            background: white; border: 1px solid #eef2f7; border-radius: 14px;
-            padding: 1rem 1.15rem; margin-bottom: 0.9rem;
-            box-shadow: 0 1px 6px rgba(0,0,0,0.04);
-        }
-        .guide-sec h3 {
-            font-size: 1.05rem; color: #c2410c; margin-bottom: 0.5rem;
-            display: flex; align-items: center; gap: 0.5rem;
-        }
-        .guide-sec > p { color: #374151; line-height: 1.6; margin-bottom: 0.4rem; font-size: 0.92rem; }
-        .guide-list { list-style: none; padding: 0; margin: 0.3rem 0 0; }
-        .guide-list li {
-            position: relative; padding: 0.42rem 0 0.42rem 1.5rem;
-            color: #374151; line-height: 1.5; font-size: 0.92rem;
-            border-top: 1px solid #f6f8fb;
-        }
-        .guide-list li:first-child { border-top: none; }
-        .guide-list li::before {
-            content: ''; position: absolute; left: 0.25rem; top: 0.78rem;
-            width: 8px; height: 8px; border-radius: 50% 50% 50% 0;
-            transform: rotate(45deg); background: #38bdf8;
-        }
-        .guide-tip {
-            background: #fff7ed; border-left: 4px solid #fb923c; border-radius: 8px;
-            padding: 0.6rem 0.85rem; margin-top: 0.65rem; font-size: 0.88rem;
-            color: #9a3412; line-height: 1.5;
-        }
-        .guide-key {
-            display: inline-block; background: #f1f5f9; border: 1px solid #e2e8f0;
-            border-radius: 6px; padding: 0.02rem 0.4rem; font-weight: 700;
-            color: #334155; font-size: 0.85rem; white-space: nowrap;
-        }
         .anw-count {
             font-size: 0.78rem; font-weight: 700; color: #0369a1;
             background: #e0f2fe; padding: 0.2rem 0.6rem;
@@ -1279,12 +1239,6 @@
         }
         /* .turtle-a / .turtle-b werden per JS animiert (randomisiert) */
 
-        /* ── Sicherung ────────────────────────────────────────── */
-        .backup-warn-dot {
-            display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-            background: #ef4444; margin-left: 4px; vertical-align: top;
-            animation: cloudPulse 1.2s infinite;
-        }
         /* ── Login / Cloud ── */
         .auth-overlay {
             position: fixed; inset: 0; z-index: 500;
@@ -1362,7 +1316,6 @@
     <div class="header-title"><img src="icon-192.png" style="height:1.9rem;width:1.9rem;border-radius:50%;flex-shrink:0;object-fit:cover"> Caros Seepferdchen</div>
     <div class="header-actions">
         <span class="header-user" id="header-user"><span class="cloud-dot" id="cloud-dot" title="Cloud-Status"></span><span id="header-user-email"></span></span>
-        <button class="header-btn" id="backup-btn" onclick="openBackupModal()" title="Daten sichern">🛟 Sicherung<span class="backup-warn-dot" id="backup-warn-dot" style="display:none"></span></button>
         <button class="header-btn" id="logout-btn" onclick="doLogout()" title="Abmelden" style="display:none">Abmelden</button>
     </div>
 </header>
@@ -1372,7 +1325,6 @@
     <button class="nav-tab" onclick="showTab('anwesenheit')">Anwesenheit</button>
     <button class="nav-tab" onclick="showTab('training')">Training</button>
     <button class="nav-tab" onclick="showTab('abzeichen')">Abzeichen</button>
-    <button class="nav-tab" onclick="showTab('anleitung')">Anleitung</button>
 </nav>
 
 <div class="main">
@@ -1412,80 +1364,7 @@
         <div id="badges-list" style="padding:.5rem 0"></div>
     </div>
 
-    <div id="tab-anleitung" hidden>
-        <div class="guide">
-            <div class="guide-hero">
-                <h2>🛟 Sicherung &amp; Daten verwalten</h2>
-                <p>Diese Seite erklärt, <b>warum deine Daten verloren gehen können</b> – und wie du sie mit einer Sicherungsdatei zuverlässig schützt und wiederherstellst. Bitte einmal in Ruhe lesen. 💛</p>
-            </div>
 
-            <div class="guide-sec">
-                <h3>📍 Wo liegen deine Daten?</h3>
-                <p>Ganz wichtig zu verstehen: <b>Alle Kinder, Kurse und Fortschritte werden NUR in diesem einen Browser auf diesem Gerät gespeichert.</b> Es gibt keinen Server, keine Cloud und kein Benutzerkonto – nichts wird ins Internet hochgeladen.</p>
-                <div class="guide-tip">💡 Das ist gut für den Datenschutz (die Kinderdaten bleiben nur bei dir) – heißt aber auch: Wird dieser Browser-Speicher gelöscht, sind die Daten weg. Es sei denn, du hast eine Sicherung.</div>
-            </div>
-
-            <div class="guide-sec">
-                <h3>⚠️ Wie &amp; warum Daten gelöscht werden können</h3>
-                <p>In diesen Fällen verschwinden die Daten – meistens ohne Vorwarnung:</p>
-                <ul class="guide-list">
-                    <li><b>Browserdaten / Verlauf löschen:</b> Löschst du (oder eine „Aufräum-App") den Browserverlauf bzw. die Websitedaten, sind auch diese App-Daten gelöscht. <b>Wichtig:</b> Einen Tab oder den Browser einfach zu <b>schließen</b> ist NICHT dasselbe – dabei passiert nichts, deine Daten bleiben erhalten.</li>
-                    <li><b>Anderes Gerät / anderer Browser:</b> Die Daten liegen nur in genau dem Browser, in dem du sie eingegeben hast. Am Handy siehst du nicht, was du am Laptop eingetragen hast.</li>
-                    <li><b>Privater Modus / Inkognito:</b> Dort werden alle Daten beim Schließen sofort gelöscht.</li>
-                    <li><b>App entfernen</b> oder den Browser neu installieren.</li>
-                </ul>
-                <div class="guide-tip">⚠️ Du bekommst oben rechts einen <b>roten Punkt</b> auf <span class="guide-key">🛟 Sicherung</span>, wenn deine letzte Sicherung mehr als 7 Tage her ist. Das ist deine Erinnerung – nimm sie ernst!</div>
-            </div>
-
-            <div class="guide-sec">
-                <h3>✅ Warum du sichern solltest</h3>
-                <p>Eine Sicherung ist eine kleine Datei (Format „JSON"), die <b>alles</b> enthält: Kurse, Kinder, Fortschritte, Anwesenheit und Trainingspläne. Damit kannst du:</p>
-                <ul class="guide-list">
-                    <li>deine Daten <b>wiederherstellen</b>, falls sie einmal verschwinden;</li>
-                    <li>sie auf ein <b>neues Gerät übertragen</b> (z. B. vom Handy auf den Laptop);</li>
-                    <li>einen früheren Stand zurückholen, falls mal etwas schiefgeht.</li>
-                </ul>
-                <div class="guide-tip">💡 Faustregel: <b>einmal pro Woche sichern</b> – und immer nach größeren Änderungen.</div>
-            </div>
-
-            <div class="guide-sec">
-                <h3>💾 Schritt 1 – Sicherung speichern</h3>
-                <ul class="guide-list">
-                    <li>Oben rechts auf <span class="guide-key">🛟 Sicherung</span> tippen.</li>
-                    <li>Auf <span class="guide-key">💾 Sicherung speichern</span> tippen.</li>
-                    <li>Es entsteht eine Datei mit dem heutigen Datum im Namen: <span class="guide-key">schwimmtrainer_JJJJ-MM-TT.json</span></li>
-                    <li>Speichere sie an einem <b>sicheren Ort</b>: z. B. in „Dateien" / iCloud, in der Cloud (Dropbox, Google Drive) oder schick sie dir selbst per E-Mail.</li>
-                </ul>
-                <div class="guide-tip">💡 Der Sicherungs-Dialog zeigt dir oben auch, wann du das letzte Mal gesichert hast.</div>
-            </div>
-
-            <div class="guide-sec">
-                <h3>📂 Schritt 2 – Sicherung laden (JSON-Datei einfügen)</h3>
-                <p>So holst du deine Daten aus einer Sicherungsdatei zurück – oder bringst sie auf ein neues Gerät:</p>
-                <ul class="guide-list">
-                    <li>Oben rechts auf <span class="guide-key">🛟 Sicherung</span> tippen.</li>
-                    <li>Auf <span class="guide-key">📂 Sicherung laden</span> tippen.</li>
-                    <li>Im Auswahlfenster deine <span class="guide-key">.json</span>-Datei aussuchen und öffnen.</li>
-                    <li>Die App meldet <b>„Daten erfolgreich geladen!"</b> – fertig, alles ist wieder da.</li>
-                </ul>
-                <div class="guide-tip">⚠️ Wichtig: „Sicherung laden" <b>ersetzt</b> die aktuellen Daten durch den Inhalt der Datei. Hast du gerade etwas Neues eingetragen, sichere es vorher – sonst wird es überschrieben.</div>
-            </div>
-
-            <div class="guide-sec">
-                <h3>🗂️ Sicherungen verwalten – Tipps</h3>
-                <ul class="guide-list">
-                    <li><b>Mehrere behalten:</b> Wirf alte Sicherungen nicht sofort weg – so kommst du notfalls auf einen älteren Stand zurück.</li>
-                    <li><b>Datum im Namen:</b> Das Datum steht schon im Dateinamen (z. B. <i>schwimmtrainer_2026-06-10.json</i>) – so findest du die neueste sofort.</li>
-                    <li><b>Fester Ort:</b> Leg dir einen Ordner an, z. B. „Schwimmtrainer-Sicherungen" in deiner Cloud.</li>
-                    <li><b>Nicht von Hand ändern:</b> Die JSON-Datei ist zwar lesbarer Text, aber bitte nicht im Editor bearbeiten – ein kleiner Fehler macht sie unbrauchbar.</li>
-                </ul>
-            </div>
-
-            <div class="guide-hero" style="margin-top:1.1rem">
-                <p style="margin:0">Kurz gesagt: <b>Regelmäßig „💾 Sicherung speichern" – dann kann nichts verloren gehen.</b> 🐢<br><span style="font-size:0.82rem;color:#64748b">Bei Fragen einfach bei Tom melden.</span></p>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Kurs hinzufügen / bearbeiten -->
@@ -1636,29 +1515,8 @@
     </div>
 </div>
 
-<!-- Sicherung -->
-<div class="modal-bg" id="modal-backup">
-    <div class="modal-box" style="max-width:460px">
-        <div class="modal-header">
-            <h2 class="modal-title">🛟 Datensicherung</h2>
-            <button class="modal-close" onclick="closeModal('modal-backup')">×</button>
-        </div>
-        <div id="backup-status" style="font-size:.85rem;font-weight:600;margin-bottom:.9rem"></div>
-        <div style="display:flex;gap:.6rem;margin-bottom:.6rem">
-            <button class="btn btn-primary" onclick="exportData()" style="flex:1">💾 Sicherung speichern</button>
-            <button class="btn btn-secondary" onclick="document.getElementById('backup-file-input').click()" style="flex:1">📂 Sicherung laden</button>
-        </div>
-        <button class="btn btn-secondary" onclick="document.getElementById('backup-merge-input').click()" style="width:100%">➕ Trainer-Daten dazuladen</button>
-        <div style="font-size:.78rem;color:#64748b;margin:.45rem 0 1.1rem">Fügt Kurse &amp; Kinder aus einer oder mehreren Sicherungs-Dateien hinzu (ersetzt nichts). Du wirst je Datei nach dem Trainer-Namen gefragt.</div>
-        <input type="file" id="backup-file-input" accept="application/json,.json" style="display:none" onchange="importData(event)">
-        <input type="file" id="backup-merge-input" accept="application/json,.json" multiple style="display:none" onchange="mergeData(event)">
-    </div>
-</div>
-
-
 <script>
 const STORAGE_KEY = 'schwimmtrainer_v1';
-const LASTEXPORT_KEY = 'schwimmtrainer_lastexport'; // Zeitpunkt der letzten Datei-Sicherung
 
 const WOCHENTAGE = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 const WOCHENTAGE_KURZ = ['Mo','Di','Mi','Do','Fr','Sa','So'];
@@ -1804,110 +1662,6 @@ function save() {
     schedulePush();                                             // in die Cloud (debounced)
 }
 
-function exportData() {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'schwimmtrainer_' + new Date().toISOString().slice(0,10) + '.json';
-    a.click();
-    localStorage.setItem(LASTEXPORT_KEY, String(Date.now()));
-    updateBackupWarnDot();
-    if (document.getElementById('modal-backup')?.classList.contains('open')) renderBackupList();
-}
-
-function importData(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-        try {
-            const imp = JSON.parse(e.target.result);
-            if (!imp.kinder) throw new Error();
-            state = normalizeState(imp);
-            ensureStufen();
-            save(); renderKurse();
-            if (document.getElementById('modal-backup')?.classList.contains('open')) renderBackupList();
-            alert('Daten erfolgreich geladen!');
-        } catch(e) { alert('Fehler beim Laden. Bitte prüfe die Datei.'); }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
-}
-
-// Mehrere Trainer-Sicherungen DAZULADEN (zusammenführen, ersetzt nichts)
-function mergeData(event) {
-    const jobs = [...event.target.files].map(file => ({
-        file,
-        trainer: (prompt('Von welchem Trainer sind die Daten aus „' + file.name + '"?\n(leer lassen = ohne Markierung)') || '').trim()
-    }));
-    event.target.value = '';
-    if (!jobs.length) return;
-    let pending = jobs.length, nKurse = 0, nKinder = 0, fehler = 0;
-    jobs.forEach(({ file, trainer }) => {
-        const reader = new FileReader();
-        reader.onload = e => {
-            try {
-                const imp = normalizeState(JSON.parse(e.target.result));
-                imp.kurse.forEach(k => {
-                    if (!state.kurse.some(x => x.id === k.id)) {
-                        if (trainer) k.trainer = trainer;
-                        state.kurse.push(k); nKurse++;
-                    }
-                });
-                imp.kinder.forEach(k => {
-                    if (!state.kinder.some(x => x.id === k.id)) { state.kinder.push(k); nKinder++; }
-                });
-                ['wochenplaene', 'anwesenheit', 'dateien', 'abschnittCount'].forEach(feld => {
-                    const src = imp[feld] || {};
-                    if (!state[feld]) state[feld] = {};
-                    Object.keys(src).forEach(id => { if (!(id in state[feld])) state[feld][id] = src[id]; });
-                });
-            } catch (err) { fehler++; }
-            if (--pending === 0) {
-                save(); renderKurse();
-                if (document.getElementById('modal-backup')?.classList.contains('open')) renderBackupList();
-                let msg = `Hinzugefügt: ${nKurse} Kurs(e) und ${nKinder} Kind(er).`;
-                if (fehler) msg += `\n${fehler} Datei(en) konnten nicht gelesen werden.`;
-                alert(msg);
-            }
-        };
-        reader.readAsText(file);
-    });
-}
-
-
-function openBackupModal() { renderBackupList(); openModal('modal-backup'); }
-
-function renderBackupList() {
-    const statusEl = document.getElementById('backup-status');
-    if (statusEl) {
-        const le = localStorage.getItem(LASTEXPORT_KEY);
-        if (le) {
-            const days = Math.floor((Date.now() - Number(le)) / 86400000);
-            const txt = days <= 0 ? 'heute' : (days === 1 ? 'gestern' : 'vor ' + days + ' Tagen');
-            const warn = days >= 7;
-            statusEl.innerHTML = 'Letzte Sicherungsdatei: ' + txt + (warn ? ' ⚠️ — bitte wieder speichern!' : ' ✓');
-            statusEl.style.color = warn ? '#c2410c' : '#16a34a';
-        } else {
-            statusEl.innerHTML = '⚠️ Noch keine Sicherungsdatei gespeichert — bitte einmal „Sicherung speichern".';
-            statusEl.style.color = '#c2410c';
-        }
-    }
-}
-
-function backupOverdue() {
-    const le = localStorage.getItem(LASTEXPORT_KEY);
-    return !le || (Date.now() - Number(le)) > 7 * 86400000;
-}
-function hasEchteData() {
-    // Nur echte Daten zählen — mindestens 1 Kind eingetragen
-    return (state.kinder?.length || 0) > 0;
-}
-function updateBackupWarnDot() {
-    const dot = document.getElementById('backup-warn-dot');
-    if (dot) dot.style.display = (backupOverdue() && hasEchteData()) ? 'inline-block' : 'none';
-}
-
 // ── Utils ─────────────────────────────────────────────────────────
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -1971,13 +1725,12 @@ function kinderOhneKurs() {
 // ── Tabs ──────────────────────────────────────────────────────────
 
 function showTab(tab) {
-    const idx = ['kurse', 'anwesenheit', 'training', 'abzeichen', 'anleitung'].indexOf(tab);
+    const idx = ['kurse', 'anwesenheit', 'training', 'abzeichen'].indexOf(tab);
     document.querySelectorAll('.nav-tab').forEach((b, i) => b.classList.toggle('active', i === idx));
     document.getElementById('tab-kurse').hidden       = tab !== 'kurse';
     document.getElementById('tab-anwesenheit').hidden = tab !== 'anwesenheit';
     document.getElementById('tab-training').hidden    = tab !== 'training';
     document.getElementById('tab-abzeichen').hidden   = tab !== 'abzeichen';
-    document.getElementById('tab-anleitung').hidden   = tab !== 'anleitung';
     if (tab === 'anwesenheit') renderAnwesenheit();
     if (tab === 'training')    renderTraining();
     if (tab === 'abzeichen')   renderStufen();
@@ -3523,7 +3276,6 @@ async function doLogout() {
 // Rendern (das, was der Start früher direkt gemacht hat)
 function startApp() {
     renderKurse();
-    updateBackupWarnDot();
 }
 
 // ── Init ──────────────────────────────────────────────────────────
