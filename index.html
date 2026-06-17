@@ -112,7 +112,7 @@
             box-shadow: 0 2px 10px rgba(194,65,12,0.35);
         }
         .header-title { font-size: 1.2rem; font-weight: 800; white-space: nowrap; display: flex; align-items: center; gap: .45rem; min-width: 0; overflow: hidden; }
-        .header-actions { display: flex; gap: 0.5rem; }
+        .header-actions { display: flex; gap: 0.5rem; align-items: center; }
         .header-btn {
             background: rgba(255,255,255,0.18);
             color: white;
@@ -1270,6 +1270,30 @@
         .cloud-dot.ok { background: #22c55e; }
         .cloud-dot.sync { background: #f59e0b; }
         .cloud-dot.err { background: #ef4444; }
+        /* ── Trainer-Umschalter ── */
+        .trainer-switch.foreign { background: #f59e0b; border-color: #f59e0b; color: white; }
+        .viewing-banner {
+            background: #fef3c7; border-bottom: 2px solid #f59e0b; color: #92400e;
+            padding: 0.5rem 0.9rem; font-size: 0.85rem; font-weight: 600;
+            display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: center;
+        }
+        .viewing-banner button {
+            background: #f59e0b; color: white; border: none; border-radius: 8px;
+            padding: 0.3rem 0.7rem; font-size: 0.8rem; font-weight: 700; cursor: pointer; font-family: inherit;
+        }
+        .trainer-list { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+        .trainer-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+            padding: 0.6rem 0.8rem; border: 1.5px solid #e2e8f0; border-radius: 10px;
+            background: white; cursor: pointer; font-family: inherit; font-size: 0.92rem;
+            font-weight: 600; color: #1e293b; text-align: left;
+        }
+        .trainer-row:hover { border-color: #94a3b8; }
+        .trainer-row.active { border-color: #0ea5e9; background: #f0f9ff; }
+        .trainer-me { color: #0ea5e9; font-size: 0.78rem; font-weight: 700; }
+        .trainer-admin { background: #ede9fe; color: #6d28d9; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 6px; font-weight: 700; }
+        .trainer-check { color: #0ea5e9; font-weight: 800; flex-shrink: 0; }
+        .my-name-row { border-top: 1px solid #e2e8f0; padding-top: 0.8rem; display: flex; flex-direction: column; gap: 0.35rem; }
     </style>
 </head>
 <body>
@@ -1315,7 +1339,8 @@
 <header class="header">
     <div class="header-title"><img src="icon-192.png" style="height:1.9rem;width:1.9rem;border-radius:50%;flex-shrink:0;object-fit:cover"> Caros Seepferdchen</div>
     <div class="header-actions">
-        <span class="header-user" id="header-user"><span class="cloud-dot" id="cloud-dot" title="Cloud-Status"></span><span id="header-user-email"></span></span>
+        <span class="cloud-dot" id="cloud-dot" title="Cloud-Status"></span>
+        <button class="header-btn trainer-switch" id="trainer-switch" onclick="openTrainerSwitch()" title="Trainer-Bereich wechseln" style="display:none">👤&nbsp;<span id="trainer-switch-label">…</span>&nbsp;▾</button>
         <button class="header-btn" id="logout-btn" onclick="doLogout()" title="Abmelden" style="display:none">Abmelden</button>
     </div>
 </header>
@@ -1326,6 +1351,27 @@
     <button class="nav-tab" onclick="showTab('training')">Training</button>
     <button class="nav-tab" onclick="showTab('abzeichen')">Abzeichen</button>
 </nav>
+
+<div id="viewing-banner" class="viewing-banner" style="display:none">
+    👀 Du bist im Bereich von <b id="viewing-banner-name"></b>
+    <button onclick="backToMyArea()">← Zu meinem Bereich</button>
+</div>
+
+<!-- Trainer-Bereich wechseln -->
+<div class="modal-bg" id="modal-trainer">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 class="modal-title">Trainer-Bereich wechseln</h2>
+            <button class="modal-close" onclick="closeModal('modal-trainer')">×</button>
+        </div>
+        <p style="font-size:.86rem;color:#475569;margin-bottom:.6rem">Wähle, wessen Kurse du sehen/bearbeiten möchtest – z. B. für eine Vertretung.</p>
+        <div id="trainer-list" class="trainer-list"></div>
+        <div class="my-name-row">
+            <label style="font-size:.8rem;color:#475569;font-weight:600">Dein Anzeigename (sehen die anderen):</label>
+            <input id="my-name-input" class="form-input" type="text" placeholder="z. B. Tom" onblur="saveMyName(this.value)">
+        </div>
+    </div>
+</div>
 
 <div class="main">
     <div id="tab-kurse">
@@ -1658,7 +1704,10 @@ function load() {
 
 function save() {
     state._savedAt = Date.now();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));   // Offline-Puffer
+    // Offline-Puffer nur für den EIGENEN Bereich (fremde Bereiche nicht lokal cachen)
+    if (!supaUser || viewingId === supaUser.id) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
     schedulePush();                                             // in die Cloud (debounced)
 }
 
@@ -3179,6 +3228,9 @@ const supa = (window.supabase && window.supabase.createClient)
 let supaUser = null;
 let isAdmin  = false;
 let cloudTimer = null;
+let viewingId = null;     // wessen Bereich gerade angezeigt wird (Standard = eigener)
+let myName = '';          // eigener Anzeigename
+let trainers = [];        // alle Trainer (aus profiles)
 
 function setCloudDot(status) {            // '', 'ok', 'sync', 'err'
     const d = document.getElementById('cloud-dot');
@@ -3219,35 +3271,46 @@ async function doLogin() {
 
 async function afterLogin(user) {
     supaUser = user;
+    viewingId = user.id;                     // starte im eigenen Bereich
     const ov = document.getElementById('auth-overlay');
     if (ov) ov.hidden = true;
-    const lo = document.getElementById('logout-btn');
-    if (lo) lo.style.display = '';
+    document.getElementById('logout-btn').style.display = '';
+    document.getElementById('trainer-switch').style.display = '';
     try {
-        const { data: prof } = await supa.from('profiles').select('is_admin').eq('id', user.id).single();
+        const { data: prof } = await supa.from('profiles').select('is_admin,name').eq('id', user.id).single();
         isAdmin = !!(prof && prof.is_admin);
+        myName  = (prof && prof.name) || '';
     } catch(e) { isAdmin = false; }
-    const em = document.getElementById('header-user-email');
-    if (em) em.textContent = user.email + (isAdmin ? ' · Admin' : '');
+    await loadTrainers();
+    updateTrainerUI();
     await loadFromCloud();
     startApp();
 }
 
+// Lädt den Bereich von viewingId. Gibt true bei Erfolg zurück.
 async function loadFromCloud() {
     setCloudDot('sync');
+    const self = viewingId === supaUser.id;
     try {
-        const { data, error } = await supa.from('trainer_data').select('state').eq('user_id', supaUser.id).maybeSingle();
+        const { data, error } = await supa.from('trainer_data').select('state').eq('user_id', viewingId).maybeSingle();
         if (error) throw error;
-        if (data && !isEmptyState(data.state)) {
-            state = normalizeState(data.state);
+        const cloud = data ? data.state : null;
+        if (cloud && !isEmptyState(cloud)) {
+            state = normalizeState(cloud);
             ensureStufen();
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        } else if (!isEmptyState(state)) {
-            await pushToCloud();             // Cloud leer, lokal Daten da → Erstmigration hochladen
+            if (self) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } else if (self && !isEmptyState(state)) {
+            await pushToCloud();             // eigener Bereich: Cloud leer, lokal Daten → Erstmigration
+        } else {
+            state = normalizeState({});      // leerer Bereich
+            ensureStufen();
+            if (self) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         }
         setCloudDot('ok');
+        return true;
     } catch(e) {
-        setCloudDot('err');                  // offline → lokaler Stand (aus load()) bleibt
+        setCloudDot('err');                  // offline o.ä.
+        return false;
     }
 }
 
@@ -3259,12 +3322,95 @@ function schedulePush() {
 }
 
 async function pushToCloud() {
-    if (!supa || !supaUser) return;
+    if (!supa || !supaUser || !viewingId) return;
     try {
         const { error } = await supa.from('trainer_data')
-            .upsert({ user_id: supaUser.id, state: state, updated_at: new Date().toISOString() });
+            .upsert({ user_id: viewingId, state: state, updated_at: new Date().toISOString() });
         setCloudDot(error ? 'err' : 'ok');
     } catch(e) { setCloudDot('err'); }
+}
+
+// ── Trainer-Umschalter ────────────────────────────────────────────
+function trainerLabel(t) { return t ? (t.name || t.email) : ''; }
+
+async function loadTrainers() {
+    let data = null;
+    try {
+        const res = await supa.from('profiles').select('id,email,name,is_admin');
+        if (res.error) throw res.error;
+        data = res.data;
+    } catch(e) {
+        try { const r2 = await supa.from('profiles').select('id,email,is_admin'); data = r2.data; } catch(e2) {}
+    }
+    trainers = data || [];
+    if (supaUser && !trainers.some(t => t.id === supaUser.id)) {
+        trainers.push({ id: supaUser.id, email: supaUser.email, name: myName, is_admin: isAdmin });
+    }
+    trainers.sort((a, b) => (trainerLabel(a) || '').localeCompare(trainerLabel(b) || '', 'de'));
+}
+
+function updateTrainerUI() {
+    const viewing = trainers.find(t => t.id === viewingId);
+    const me = trainers.find(t => t.id === supaUser.id);
+    const lbl = document.getElementById('trainer-switch-label');
+    if (lbl) lbl.textContent = trainerLabel(viewing) || trainerLabel(me) || (supaUser && supaUser.email) || 'Ich';
+    const sw = document.getElementById('trainer-switch');
+    if (sw) sw.classList.toggle('foreign', viewingId !== supaUser.id);
+    const banner = document.getElementById('viewing-banner');
+    if (banner) {
+        const foreign = viewingId !== supaUser.id;
+        banner.style.display = foreign ? '' : 'none';
+        if (foreign) document.getElementById('viewing-banner-name').textContent = trainerLabel(viewing) || 'anderem Trainer';
+    }
+}
+
+function openTrainerSwitch() {
+    const list = document.getElementById('trainer-list');
+    let html = '';
+    trainers.forEach(t => {
+        const isMe = t.id === supaUser.id;
+        const active = t.id === viewingId;
+        html += `<button class="trainer-row ${active ? 'active' : ''}" onclick="switchToTrainer('${t.id}')">
+            <span>${esc(trainerLabel(t))}${isMe ? ' <span class="trainer-me">(du)</span>' : ''}${t.is_admin ? ' <span class="trainer-admin">Admin</span>' : ''}</span>
+            ${active ? '<span class="trainer-check">✓</span>' : ''}
+        </button>`;
+    });
+    list.innerHTML = html || '<div style="color:#64748b;font-size:.9rem">Keine Trainer gefunden.</div>';
+    const ni = document.getElementById('my-name-input');
+    if (ni) ni.value = myName || '';
+    openModal('modal-trainer');
+}
+
+async function switchToTrainer(id) {
+    closeModal('modal-trainer');
+    if (!id || id === viewingId) return;
+    const prev = viewingId;
+    viewingId = id;
+    expandedKindId = null;
+    updateTrainerUI();
+    const ok = await loadFromCloud();
+    if (!ok) {                               // fehlgeschlagen (offline) → zurück
+        alert('Konnte den Bereich nicht laden – dafür ist Internet nötig.');
+        viewingId = prev;
+        updateTrainerUI();
+        await loadFromCloud();
+    }
+    renderKurse();
+    if (!document.getElementById('tab-anwesenheit').hidden) renderAnwesenheit();
+    if (!document.getElementById('tab-training').hidden)    renderTraining();
+    if (!document.getElementById('tab-abzeichen').hidden)   renderStufen();
+}
+
+function backToMyArea() { switchToTrainer(supaUser.id); }
+
+async function saveMyName(val) {
+    val = (val || '').trim();
+    if (val === myName) return;
+    myName = val;
+    try { await supa.from('profiles').update({ name: val || null }).eq('id', supaUser.id); } catch(e) {}
+    const me = trainers.find(t => t.id === supaUser.id);
+    if (me) me.name = val;
+    updateTrainerUI();
 }
 
 async function doLogout() {
