@@ -789,8 +789,7 @@
         .kind-row-x,
         .logbook-tab,
         .modal-close,
-        .anf-del,
-        .abschnitt-bubble {
+        .anf-del {
             position: relative;
             overflow: hidden;
         }
@@ -799,8 +798,7 @@
         .kind-row-x::before,
         .logbook-tab::before,
         .modal-close::before,
-        .anf-del::before,
-        .abschnitt-bubble::before {
+        .anf-del::before {
             content: '';
             position: absolute;
             inset: 0;
@@ -812,66 +810,7 @@
             pointer-events: none;
         }
 
-        /* Abschnittsblasen */
-        .abschnitt-bar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.45rem;
-            padding: 0.7rem 0.85rem;
-            border-bottom: 1px solid #eef2f7;
-            background: rgba(255,255,255,0.5);
-            align-items: center;
-        }
-        .abschnitt-bubble {
-            width: 36px; height: 36px;
-            border-radius: 50%;
-            border: 2px solid #e2e8f0;
-            background: white;
-            font-size: 0.82rem; font-weight: 700;
-            cursor: pointer;
-            display: inline-flex; align-items: center; justify-content: center;
-            color: #64748b; font-family: inherit;
-            transition: transform 0.12s, border-color 0.12s;
-            flex-shrink: 0;
-        }
-        .abschnitt-bubble:hover { border-color: #94a3b8; color: #374151; transform: scale(1.1); }
-        .abschnitt-bubble.aktiv { color: white; border-color: transparent; }
-        .abschnitt-add {
-            border-style: dashed;
-            border-color: #cbd5e1;
-            color: #94a3b8;
-            font-size: 1.2rem; font-weight: 400;
-        }
-        .abschnitt-add:hover { border-color: #64748b; color: #374151; transform: scale(1.1); }
-        /* Abschnitte bearbeiten / löschen */
-        .abschnitt-edit { font-size: 1rem; }
-        .abschnitt-edit.aktiv-edit { border-color: #16a34a; color: #16a34a; background: #f0fdf4; }
-        .abschnitt-wrap { position: relative; display: inline-flex; flex-shrink: 0; }
-        .abschnitt-del {
-            position: absolute; top: -5px; right: -5px;
-            width: 19px; height: 19px;
-            background: #dc2626; color: white;
-            border-radius: 50%;
-            font-size: 0.95rem; line-height: 18px; font-weight: 700;
-            text-align: center; cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            z-index: 3;
-        }
-        .abschnitt-del:hover { background: #b91c1c; transform: scale(1.15); }
-        @keyframes abschnittWackel { 0%,100%{transform:rotate(-2.5deg)} 50%{transform:rotate(2.5deg)} }
-        .abschnitt-wrap.wackel .abschnitt-bubble { animation: abschnittWackel 0.45s ease-in-out infinite; }
-        .abschnitt-content-title {
-            font-size: 0.75rem; font-weight: 700;
-            color: #475569; text-transform: uppercase;
-            letter-spacing: 0.05em; margin-bottom: 0.5rem;
-        }
-
-        /* Anwesenheitsliste (Anwesenheit-Tab) + Dateibereich-Titel */
-        .attendance-title {
-            font-size: 0.75rem; font-weight: 700;
-            color: #475569; text-transform: uppercase;
-            letter-spacing: 0.05em; margin-bottom: 0.45rem;
-        }
+        /* Anwesenheitsliste (Anwesenheit-Tab) */
         .attendance-row {
             display: flex; align-items: center;
             gap: 0.6rem; padding: 0.3rem 0.4rem;
@@ -1089,77 +1028,6 @@
         .anw-ausfall-chip button:hover { background: #fca5a5; }
         .anw-ausfall-keine { font-size: 0.78rem; color: #94a3b8; font-style: italic; }
 
-        /* Dateibereich */
-        .dateien-section {
-            border-top: 1px solid #eef2f7;
-            margin-top: 0.8rem;
-            padding-top: 0.75rem;
-        }
-        .drop-zone {
-            border: 2px dashed #cbd5e1;
-            border-radius: 10px;
-            padding: 1rem 1rem;
-            text-align: center;
-            color: #94a3b8;
-            font-size: 0.82rem;
-            cursor: pointer;
-            transition: border-color 0.15s, background 0.15s;
-            background: #f8fafc;
-            margin-bottom: 0.5rem;
-        }
-        .drop-zone.dragover, .drop-zone:hover {
-            border-color: #7dd3fc;
-            background: #f0f9ff;
-            color: #0369a1;
-        }
-        .datei-row {
-            display: flex; align-items: center; gap: 0.5rem;
-            padding: 0.35rem 0.3rem; border-radius: 7px;
-            font-size: 0.82rem;
-        }
-        .datei-row:hover { background: #f8fafc; }
-        .datei-ext {
-            font-size: 0.64rem; font-weight: 800; text-transform: uppercase;
-            background: #e2e8f0; color: #475569;
-            padding: 0.1rem 0.35rem; border-radius: 4px;
-            flex-shrink: 0; min-width: 30px; text-align: center;
-        }
-        .datei-name {
-            flex: 1; color: #374151; cursor: pointer;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .datei-name:hover { text-decoration: underline; color: #0369a1; }
-        .datei-size { color: #94a3b8; font-size: 0.7rem; flex-shrink: 0; }
-        .datei-del {
-            background: none; border: none; color: #cbd5e1;
-            cursor: pointer; font-size: 1.1rem; line-height: 1;
-            padding: 0 0.2rem; flex-shrink: 0;
-        }
-        .datei-del:hover { color: #dc2626; }
-
-        .training-textarea {
-            width: 100%;
-            min-height: 180px;
-            padding: 0.8rem 0.9rem;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 0.88rem;
-            font-family: inherit;
-            color: #374151;
-            background: white;
-            resize: vertical;
-            line-height: 1.7;
-        }
-        .training-textarea:focus { outline: none; border-color: #0ea5e9; }
-        .training-textarea::placeholder { color: #d1d5db; }
-        .training-saved {
-            font-size: 0.72rem;
-            color: #16a34a;
-            margin-top: 0.3rem;
-            height: 1em;
-            transition: opacity 0.5s;
-        }
-
         @media (max-width: 500px) {
             /* ── Header kompakter ─────────────────────────────── */
             .header { padding: 0.6rem 0.85rem; gap: 0.5rem; }
@@ -1356,7 +1224,6 @@
 <nav class="nav">
     <button class="nav-tab active" onclick="showTab('kurse')">Kurse</button>
     <button class="nav-tab" onclick="showTab('anwesenheit')">Anwesenheit</button>
-    <button class="nav-tab" onclick="showTab('training')">Training</button>
     <button class="nav-tab" onclick="showTab('abzeichen')">Abzeichen</button>
 </nav>
 
@@ -1408,10 +1275,6 @@
             <button class="anw-share-btn" onclick="oeffneAnwTeilen()">📄 Teilen</button>
         </div>
         <div id="anwesenheit-list"></div>
-    </div>
-
-    <div id="tab-training" hidden>
-        <div id="training-list"></div>
     </div>
 
     <div id="tab-abzeichen" hidden>
@@ -1652,8 +1515,6 @@ const STUFEN_DEFAULT = [
 
 let state = { kinder: [], badges: [], kurse: [], wochenplaene: {}, anwesenheit: {} };
 let editKindId = null;
-let selectedAbschnitt = {};  // kursId → aktuell angeklickte Abschnittsnummer
-let abschnittEdit = {};      // kursId → ist der Lösch-/Bearbeiten-Modus aktiv?
 let editKursId = null;
 let editStufeId = null;
 let currentDay = HEUTE;          // 0-6 oder 'alle'
@@ -1783,14 +1644,12 @@ function kinderOhneKurs() {
 // ── Tabs ──────────────────────────────────────────────────────────
 
 function showTab(tab) {
-    const idx = ['kurse', 'anwesenheit', 'training', 'abzeichen'].indexOf(tab);
+    const idx = ['kurse', 'anwesenheit', 'abzeichen'].indexOf(tab);
     document.querySelectorAll('.nav-tab').forEach((b, i) => b.classList.toggle('active', i === idx));
     document.getElementById('tab-kurse').hidden       = tab !== 'kurse';
     document.getElementById('tab-anwesenheit').hidden = tab !== 'anwesenheit';
-    document.getElementById('tab-training').hidden    = tab !== 'training';
     document.getElementById('tab-abzeichen').hidden   = tab !== 'abzeichen';
     if (tab === 'anwesenheit') renderAnwesenheit();
-    if (tab === 'training')    renderTraining();
     if (tab === 'abzeichen')   renderStufen();
 }
 
@@ -1803,158 +1662,6 @@ function getISOWeek(date) {
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
     return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
-function getISOWeeksInYear(year) {
-    return getISOWeek(new Date(year, 11, 28));
-}
-function kwKey(yw) {
-    return `${yw.year}-W${String(yw.week).padStart(2,'0')}`;
-}
-function getWeekDates(year, week) {
-    const jan4 = new Date(year, 0, 4);
-    const jan4Day = jan4.getDay() || 7;
-    const mon = new Date(jan4);
-    mon.setDate(jan4.getDate() - (jan4Day - 1) + (week - 1) * 7);
-    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-    return { start: mon, end: sun };
-}
-function fmtD(d) {
-    return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.';
-}
-function addAbschnitt(kursId) {
-    if (!state.abschnittCount) state.abschnittCount = {};
-    const n = (state.abschnittCount[kursId] || 0);
-    if (n >= 12) return;
-    state.abschnittCount[kursId] = n + 1;
-    selectedAbschnitt[kursId] = n + 1;
-    save();
-    const el = document.getElementById('training-card-' + kursId);
-    if (el) el.outerHTML = renderKursTrainingCard(kursId);
-}
-
-function selectAbschnitt(kursId, nr) {
-    selectedAbschnitt[kursId] = nr;
-    const el = document.getElementById('training-card-' + kursId);
-    if (el) el.outerHTML = renderKursTrainingCard(kursId);
-}
-
-function toggleAbschnittEdit(kursId) {
-    abschnittEdit[kursId] = !abschnittEdit[kursId];
-    const el = document.getElementById('training-card-' + kursId);
-    if (el) el.outerHTML = renderKursTrainingCard(kursId);
-}
-
-function deleteAbschnitt(kursId, nr) {
-    const count = state.abschnittCount[kursId] || 0;
-    if (nr < 1 || nr > count) return;
-    if (!confirm(`Abschnitt ${nr} wirklich löschen?\nTrainingsplan und Dateien dieses Abschnitts werden entfernt.`)) return;
-
-    // Daten des gelöschten Abschnitts weg, höhere Abschnitte rücken eins nach unten
-    const rueckeNach = (obj) => {
-        const m = obj && obj[kursId];
-        if (!m) return;
-        delete m['abschnitt-' + nr];
-        for (let i = nr + 1; i <= count; i++) {
-            if (m['abschnitt-' + i] !== undefined) m['abschnitt-' + (i - 1)] = m['abschnitt-' + i];
-            else delete m['abschnitt-' + (i - 1)];
-            delete m['abschnitt-' + i];
-        }
-    };
-    rueckeNach(state.wochenplaene);
-    rueckeNach(state.dateien);
-    rueckeNach(state.anwesenheit);
-
-    const neuCount = count - 1;
-    state.abschnittCount[kursId] = neuCount;
-
-    // Auswahl anpassen (gelöschten → benachbarten, höhere rücken nach)
-    let sel = selectedAbschnitt[kursId] || 1;
-    if (neuCount === 0) { sel = null; abschnittEdit[kursId] = false; }
-    else if (sel === nr) sel = Math.min(nr, neuCount);
-    else if (sel > nr) sel = sel - 1;
-    selectedAbschnitt[kursId] = sel;
-
-    save();
-    const el = document.getElementById('training-card-' + kursId);
-    if (el) el.outerHTML = renderKursTrainingCard(kursId);
-}
-
-// ── Trainingsplan-Tab ─────────────────────────────────────────────
-
-function renderKursTrainingCard(kursId) {
-    const kurs = getKurs(kursId); if (!kurs) return '';
-    const cf = kursFarbe(kursId);
-    const zeit = kurs.von ? `<span class="kurs-time-badge" style="background:${cf.hell};color:${cf.farbe}">${kurs.von}${kurs.bis ? '–'+kurs.bis : ''}</span>` : '';
-    const count = state.abschnittCount[kursId] || 0;
-    const sel = selectedAbschnitt[kursId] || (count > 0 ? 1 : null);
-
-    // Abschnittsblasen
-    const editing = !!abschnittEdit[kursId];
-    let blasen = '';
-    for (let i = 1; i <= count; i++) {
-        const aktiv = sel === i;
-        const del = editing
-            ? `<span class="abschnitt-del" onclick="event.stopPropagation();deleteAbschnitt('${kursId}',${i})" title="Abschnitt ${i} löschen">×</span>`
-            : '';
-        blasen += `<span class="abschnitt-wrap ${editing ? 'wackel' : ''}">
-            <button class="abschnitt-bubble ${aktiv ? 'aktiv' : ''}"
-                style="${aktiv ? 'background:' + cf.farbe + ';box-shadow:0 2px 8px ' + cf.farbe + '55' : ''}"
-                onclick="selectAbschnitt('${kursId}',${i})">${i}</button>
-            ${del}
-        </span>`;
-    }
-    if (count < 12 && !editing) {
-        blasen += `<button class="abschnitt-bubble abschnitt-add" onclick="addAbschnitt('${kursId}')" title="Abschnitt hinzufügen">+</button>`;
-    }
-    if (count > 0) {
-        blasen += `<button class="abschnitt-bubble abschnitt-edit ${editing ? 'aktiv-edit' : ''}"
-            onclick="toggleAbschnittEdit('${kursId}')"
-            title="${editing ? 'Fertig' : 'Abschnitte entfernen'}">${editing ? '✓' : '❌'}</button>`;
-    }
-
-    // Inhalt des gewählten Abschnitts
-    let inhalt = '';
-    if (sel) {
-        const key = 'abschnitt-' + sel;
-        const planText = (state.wochenplaene[kursId] || {})[key] || '';
-        inhalt = `<div style="padding:0.75rem 0.85rem 0.85rem">
-            <div class="abschnitt-content-title" style="color:${cf.farbe}">Abschnitt ${sel}</div>
-            <div style="display:flex;gap:0.75rem;align-items:flex-start;flex-wrap:wrap">
-                <div style="flex:2;min-width:200px">
-                    <textarea class="training-textarea" ${(trainerMode || editorMode) ? '' : 'readonly'}
-                        placeholder="Trainingsplan Abschnitt ${sel} hier einfügen oder eintippen…"
-                        onblur="saveWochenplan('${kursId}','${key}',this.value)">${esc(planText)}</textarea>
-                    <div class="training-saved" id="tp-saved-${kursId}"></div>
-                </div>
-                <div style="flex:1;min-width:160px">${dateiSectionHTML(kursId, key, cf)}</div>
-            </div>
-        </div>`;
-    } else {
-        inhalt = `<div style="padding:0.9rem 0.85rem;color:#94a3b8;font-size:0.84rem;text-align:center">
-            Klicke auf „+" um den ersten Abschnitt hinzuzufügen</div>`;
-    }
-
-    return `<div class="kurs-card" id="training-card-${kursId}" style="border-left-color:${cf.farbe};margin-bottom:1.1rem">
-        <div class="kurs-card-head" style="background:${cf.hell}">
-            <div class="kurs-head-left">
-                <div class="kurs-title" style="color:${cf.farbe}"><button class="kurs-fav ${kurs.favorit ? 'is-fav' : ''}" onclick="event.stopPropagation();toggleFavorit('${kurs.id}')" title="${kurs.favorit ? 'Favorit entfernen' : 'Als Favorit markieren'}">${kurs.favorit ? '★' : '☆'}</button>${esc(kurs.name)}${kursTrainerChipsHTML(kurs)}</div>
-                <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}</div>
-            </div>
-        </div>
-        <div class="abschnitt-bar">${blasen}</div>
-        ${inhalt}
-    </div>`;
-}
-
-function renderTraining() {
-    const wrap = document.getElementById('training-list');
-    const kurse = _kurseNachZeit();
-    if (!kurse.length) {
-        wrap.innerHTML = '<div class="empty-state"><h3>Noch keine Kurse angelegt</h3><p>Lege zuerst einen Kurs an.</p></div>';
-        return;
-    }
-    wrap.innerHTML = kurse.map(k => renderKursTrainingCard(k.id)).join('');
-}
-
 // ── Anwesenheit-Tab (pro echtem Datum) ────────────────────────────
 
 function isoAnwHeute() {
@@ -2119,103 +1826,6 @@ function renderAnwesenheit() {
 
 // ── Datei-Upload ──────────────────────────────────────────────────
 
-function formatSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
-}
-
-function dateiExt(name) {
-    const p = name.lastIndexOf('.');
-    return p >= 0 ? name.slice(p + 1).toLowerCase() : 'dat';
-}
-
-function handleDrop(event, kursId, key) {
-    event.preventDefault();
-    event.currentTarget.classList.remove('dragover');
-    speicherDateien([...event.dataTransfer.files], kursId, key);
-}
-
-function handleFiles(event, kursId, key) {
-    speicherDateien([...event.target.files], kursId, key);
-    event.target.value = '';
-}
-
-function speicherDateien(files, kursId, key) {
-    if (!state.dateien) state.dateien = {};
-    if (!state.dateien[kursId]) state.dateien[kursId] = {};
-    if (!state.dateien[kursId][key]) state.dateien[kursId][key] = [];
-    let pending = files.length;
-    files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = e => {
-            state.dateien[kursId][key].push({
-                id: uid(), name: file.name,
-                type: file.type, size: file.size,
-                dataURL: e.target.result
-            });
-            pending--;
-            if (pending === 0) {
-                try { save(); } catch(err) { alert('Datei zu groß für lokalen Speicher!'); return; }
-                const el = document.getElementById('training-card-' + kursId);
-                if (el) el.outerHTML = renderKursTrainingCard(kursId);
-            }
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-function loescheDatei(kursId, key, fileId) {
-    const arr = state.dateien?.[kursId]?.[key];
-    if (!arr) return;
-    state.dateien[kursId][key] = arr.filter(f => f.id !== fileId);
-    save();
-    const el = document.getElementById('training-card-' + kursId);
-    if (el) el.outerHTML = renderKursTrainingCard(kursId);
-}
-
-function ladeeDatei(kursId, key, fileId) {
-    const f = (state.dateien?.[kursId]?.[key] || []).find(f => f.id === fileId);
-    if (!f) return;
-    const a = document.createElement('a');
-    a.href = f.dataURL; a.download = f.name; a.click();
-}
-
-function dateiSectionHTML(kursId, key, cf) {
-    const liste = (state.dateien?.[kursId]?.[key]) || [];
-    const rows = liste.map(f => {
-        const ext = dateiExt(f.name);
-        return `<div class="datei-row">
-            <span class="datei-ext">${esc(ext)}</span>
-            <span class="datei-name" onclick="ladeeDatei('${kursId}','${key}','${f.id}')" title="${esc(f.name)}">${esc(f.name)}</span>
-            <span class="datei-size">${formatSize(f.size)}</span>
-            <button class="datei-del" onclick="loescheDatei('${kursId}','${key}','${f.id}')" title="Entfernen">×</button>
-        </div>`;
-    }).join('');
-    return `<div class="dateien-section">
-        <div class="attendance-title">Dateien</div>
-        <div class="drop-zone"
-            ondragover="event.preventDefault();this.classList.add('dragover')"
-            ondragleave="this.classList.remove('dragover')"
-            ondrop="handleDrop(event,'${kursId}','${key}')">
-            <label style="cursor:pointer">
-                Hierher ziehen oder <span style="color:${cf.farbe};text-decoration:underline">auswählen</span>
-                <input type="file" multiple style="display:none" onchange="handleFiles(event,'${kursId}','${key}')">
-            </label>
-        </div>
-        ${rows}
-    </div>`;
-}
-
-function saveWochenplan(kursId, kw, value) {
-    if (!state.wochenplaene[kursId]) state.wochenplaene[kursId] = {};
-    if (value.trim()) state.wochenplaene[kursId][kw] = value;
-    else delete state.wochenplaene[kursId][kw];
-    save();
-    const el = document.getElementById('tp-saved-' + kursId);
-    if (el) { el.textContent = 'Gespeichert'; setTimeout(() => { if (el) el.textContent = ''; }, 2000); }
-}
-
 function toggleAnwesenheit(kursId, kw, kindId, checked) {
     if (!state.anwesenheit[kursId]) state.anwesenheit[kursId] = {};
     if (!state.anwesenheit[kursId][kw]) state.anwesenheit[kursId][kw] = {};
@@ -2241,7 +1851,6 @@ function toggleFavorit(kursId) {
     save();
     if (!document.getElementById('tab-kurse').hidden)       renderKurse();
     if (!document.getElementById('tab-anwesenheit').hidden) renderAnwesenheit();
-    if (!document.getElementById('tab-training').hidden)    renderTraining();
 }
 
 function renderDayChips() {
@@ -3517,7 +3126,6 @@ async function switchToTrainer(id) {
     }
     renderKurse();
     if (!document.getElementById('tab-anwesenheit').hidden) renderAnwesenheit();
-    if (!document.getElementById('tab-training').hidden)    renderTraining();
     if (!document.getElementById('tab-abzeichen').hidden)   renderStufen();
 }
 
