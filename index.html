@@ -3272,6 +3272,7 @@ let cloudTimer = null;
 let viewingId = null;     // wessen Bereich gerade angezeigt wird (Standard = eigener)
 let myName = '';          // eigener Anzeigename
 let trainers = [];        // alle Trainer (aus profiles)
+let loadedSharedIds = new Set();   // welche geteilten Kurse gerade im state gemerged sind
 
 function setCloudDot(status) {            // '', 'ok', 'sync', 'err'
     const d = document.getElementById('cloud-dot');
@@ -3329,24 +3330,48 @@ async function afterLogin(user) {
 }
 
 // Lädt den Bereich von viewingId. Gibt true bei Erfolg zurück.
+// Geteilte Kurse (Zeilen aus shared_courses) in den state einmischen
+function mergeSharedIntoState(rows) {
+    loadedSharedIds = new Set();
+    (rows || []).forEach(row => {
+        const d = row.data || {};
+        if (!d.kurs || !d.kurs.id) return;
+        loadedSharedIds.add(row.course_id);
+        const id = d.kurs.id;
+        if (!state.kurse.some(x => x.id === id)) state.kurse.push({ ...d.kurs, _shared: true });
+        (d.kinder || []).forEach(kid => { if (!state.kinder.some(x => x.id === kid.id)) state.kinder.push(kid); });
+        if (d.anwesenheit   && Object.keys(d.anwesenheit).length)   state.anwesenheit[id]   = d.anwesenheit;
+        if (d.wochenplaene  && Object.keys(d.wochenplaene).length)  state.wochenplaene[id]  = d.wochenplaene;
+        if (d.dateien       && Object.keys(d.dateien).length)       state.dateien[id]       = d.dateien;
+        if (d.abschnittCount)                                       state.abschnittCount[id] = d.abschnittCount;
+    });
+}
+
 async function loadFromCloud() {
     setCloudDot('sync');
     const self = viewingId === supaUser.id;
+    loadedSharedIds = new Set();
     try {
+        // 1) persönlicher Bereich (eigener Blob)
         const { data, error } = await supa.from('trainer_data').select('state').eq('user_id', viewingId).maybeSingle();
         if (error) throw error;
         const cloud = data ? data.state : null;
+        let migrate = false;
         if (cloud && !isEmptyState(cloud)) {
             state = normalizeState(cloud);
-            ensureStufen();
-            if (self) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         } else if (self && !isEmptyState(state)) {
-            await pushToCloud();             // eigener Bereich: Cloud leer, lokal Daten → Erstmigration
+            migrate = true;                  // Cloud leer, lokal Daten → behalten + hochladen
         } else {
-            state = normalizeState({});      // leerer Bereich
-            ensureStufen();
-            if (self) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            state = normalizeState({});
         }
+        // 2) geteilte Kurse dazumischen (mit viewingId getaggt)
+        try {
+            const { data: rows } = await supa.from('shared_courses').select('*').contains('trainers', [viewingId]);
+            mergeSharedIntoState(rows);
+        } catch(e2) { /* Tabelle fehlt o.ä. → ohne geteilte Kurse weiter */ }
+        ensureStufen();
+        if (self) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (migrate) await pushToCloud();
         setCloudDot('ok');
         return true;
     } catch(e) {
@@ -3362,12 +3387,66 @@ function schedulePush() {
     cloudTimer = setTimeout(pushToCloud, 1200);
 }
 
+// Ein Kurs gilt als „geteilt", wenn er mit mindestens 2 Trainern getaggt ist
+function isSharedKurs(k) { return ((k.trainers || []).length) >= 2; }
+
+// Teilt den aktuellen state in persönlichen Blob + geteilte Kurs-Bündel auf
+function partitionState() {
+    const sharedKurse = state.kurse.filter(isSharedKurs);
+    const sharedIds = new Set(sharedKurse.map(k => k.id));
+    const pick = (obj) => {
+        const o = {};
+        Object.keys(obj || {}).forEach(key => { if (!sharedIds.has(key)) o[key] = obj[key]; });
+        return o;
+    };
+    const stripShared = (k) => { const c = { ...k }; delete c._shared; return c; };
+    const personal = {
+        stufenVersion: state.stufenVersion,
+        badges:        state.badges,
+        kurse:         state.kurse.filter(k => !sharedIds.has(k.id)).map(stripShared),
+        kinder:        state.kinder.filter(k => !sharedIds.has(k.kursId)),
+        wochenplaene:  pick(state.wochenplaene),
+        anwesenheit:   pick(state.anwesenheit),
+        abschnittCount: pick(state.abschnittCount),
+        dateien:       pick(state.dateien),
+        _savedAt:      state._savedAt
+    };
+    const sharedBundles = sharedKurse.map(k => ({
+        course_id: k.id,
+        trainers:  k.trainers,
+        data: {
+            kurs:           stripShared(k),
+            kinder:         state.kinder.filter(x => x.kursId === k.id),
+            anwesenheit:    (state.anwesenheit  || {})[k.id] || {},
+            wochenplaene:   (state.wochenplaene || {})[k.id] || {},
+            dateien:        (state.dateien      || {})[k.id] || {},
+            abschnittCount: (state.abschnittCount || {})[k.id] || 0
+        }
+    }));
+    const removedIds = [...loadedSharedIds].filter(id => !sharedIds.has(id));
+    return { personal, sharedBundles, sharedIds, removedIds };
+}
+
 async function pushToCloud() {
     if (!supa || !supaUser || !viewingId) return;
     try {
+        const part = partitionState();
+        // 1) persönlicher Blob (ohne die geteilten Kurse)
         const { error } = await supa.from('trainer_data')
-            .upsert({ user_id: viewingId, state: state, updated_at: new Date().toISOString() });
-        setCloudDot(error ? 'err' : 'ok');
+            .upsert({ user_id: viewingId, state: part.personal, updated_at: new Date().toISOString() });
+        let sErr = false;
+        // 2) geteilte Kurse je als eigene Zeile speichern
+        for (const b of part.sharedBundles) {
+            const r = await supa.from('shared_courses')
+                .upsert({ course_id: b.course_id, trainers: b.trainers, data: b.data, updated_at: new Date().toISOString() });
+            if (r.error) sErr = true;
+        }
+        // 3) nicht mehr geteilte / gelöschte Kurse aus der Ablage entfernen
+        for (const id of part.removedIds) {
+            await supa.from('shared_courses').delete().eq('course_id', id);
+        }
+        loadedSharedIds = part.sharedIds;
+        setCloudDot((error || sErr) ? 'err' : 'ok');
     } catch(e) { setCloudDot('err'); }
 }
 
