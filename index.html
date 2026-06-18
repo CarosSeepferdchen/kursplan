@@ -1294,6 +1294,14 @@
         .trainer-admin { background: #ede9fe; color: #6d28d9; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 6px; font-weight: 700; }
         .trainer-check { color: #0ea5e9; font-weight: 800; flex-shrink: 0; }
         .my-name-row { border-top: 1px solid #e2e8f0; padding-top: 0.8rem; display: flex; flex-direction: column; gap: 0.35rem; }
+        .kurs-tag-picker { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .kurs-tag-chip {
+            padding: 0.32rem 0.7rem; border-radius: 99px; border: 1.5px solid #cbd5e1;
+            background: white; color: #475569; font-size: 0.82rem; font-weight: 600;
+            cursor: pointer; font-family: inherit; transition: all 0.12s;
+        }
+        .kurs-tag-chip:hover { border-color: #94a3b8; }
+        .kurs-tag-chip.sel { background: #ede9fe; border-color: #8b5cf6; color: #6d28d9; }
     </style>
 </head>
 <body>
@@ -1426,8 +1434,9 @@
                 onkeydown="if(event.key==='Enter')saveKurs()">
         </div>
         <div class="form-group">
-            <label class="form-label">Trainer (optional)</label>
-            <input class="form-input" type="text" id="kurs-trainer" placeholder="z.B. Tom">
+            <label class="form-label">Trainer</label>
+            <div id="kurs-trainer-tags" class="kurs-tag-picker"></div>
+            <div style="font-size:.75rem;color:#64748b;margin-top:.3rem">Wähle, welche Trainer den Kurs betreuen.</div>
         </div>
         <div class="form-row">
             <div class="form-group" style="flex:2">
@@ -1927,7 +1936,7 @@ function renderKursTrainingCard(kursId) {
     return `<div class="kurs-card" id="training-card-${kursId}" style="border-left-color:${cf.farbe};margin-bottom:1.1rem">
         <div class="kurs-card-head" style="background:${cf.hell}">
             <div class="kurs-head-left">
-                <div class="kurs-title" style="color:${cf.farbe}"><button class="kurs-fav ${kurs.favorit ? 'is-fav' : ''}" onclick="event.stopPropagation();toggleFavorit('${kurs.id}')" title="${kurs.favorit ? 'Favorit entfernen' : 'Als Favorit markieren'}">${kurs.favorit ? '★' : '☆'}</button>${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
+                <div class="kurs-title" style="color:${cf.farbe}"><button class="kurs-fav ${kurs.favorit ? 'is-fav' : ''}" onclick="event.stopPropagation();toggleFavorit('${kurs.id}')" title="${kurs.favorit ? 'Favorit entfernen' : 'Als Favorit markieren'}">${kurs.favorit ? '★' : '☆'}</button>${esc(kurs.name)}${kursTrainerChipsHTML(kurs)}</div>
                 <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}</div>
             </div>
         </div>
@@ -2085,7 +2094,7 @@ function renderAnwesenheit() {
         return `<div class="kurs-card${ausgefallen ? ' kurs-ausgefallen' : ''}" style="border-left-color:${cf.farbe};margin-bottom:1.1rem">
             <div class="kurs-card-head" style="background:${cf.hell}">
                 <div class="kurs-head-left">
-                    <div class="kurs-title" style="color:${cf.farbe}"><button class="kurs-fav ${kurs.favorit ? 'is-fav' : ''}" onclick="event.stopPropagation();toggleFavorit('${kurs.id}')" title="${kurs.favorit ? 'Favorit entfernen' : 'Als Favorit markieren'}">${kurs.favorit ? '★' : '☆'}</button>${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
+                    <div class="kurs-title" style="color:${cf.farbe}"><button class="kurs-fav ${kurs.favorit ? 'is-fav' : ''}" onclick="event.stopPropagation();toggleFavorit('${kurs.id}')" title="${kurs.favorit ? 'Favorit entfernen' : 'Als Favorit markieren'}">${kurs.favorit ? '★' : '☆'}</button>${esc(kurs.name)}${kursTrainerChipsHTML(kurs)}</div>
                     <div class="kurs-sub">${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}</div>
                 </div>
                 ${!ausgefallen && kinder.length ? `<div class="anw-count" id="attendance-sum-${kurs.id}-${key}">${anwesend} von ${kinder.length} anwesend</div>` : ''}
@@ -2315,7 +2324,7 @@ function kursCardHTML(kurs) {
     return `<div class="kurs-card" style="border-left-color:${cf.farbe}">
         <div class="kurs-card-head" style="background:${cf.hell}">
             <div class="kurs-head-left">
-                <div class="kurs-title" style="color:${cf.farbe}"><button class="kurs-fav ${kurs.favorit ? 'is-fav' : ''}" onclick="event.stopPropagation();toggleFavorit('${kurs.id}')" title="${kurs.favorit ? 'Favorit entfernen' : 'Als Favorit markieren'}">${kurs.favorit ? '★' : '☆'}</button>${esc(kurs.name)}${kurs.trainer ? ' <span class="kurs-trainer">👤 ' + esc(kurs.trainer) + '</span>' : ''}</div>
+                <div class="kurs-title" style="color:${cf.farbe}"><button class="kurs-fav ${kurs.favorit ? 'is-fav' : ''}" onclick="event.stopPropagation();toggleFavorit('${kurs.id}')" title="${kurs.favorit ? 'Favorit entfernen' : 'Als Favorit markieren'}">${kurs.favorit ? '★' : '☆'}</button>${esc(kurs.name)}${kursTrainerChipsHTML(kurs)}</div>
                 <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}${blockLabel(kurs)} · ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</div>
             </div>
             <div class="kurs-actions">
@@ -2623,11 +2632,42 @@ function formatJahrgang(von, bis) {
     return 'Jg. ' + von + '–' + String(bis).slice(-2);
 }
 
+// ── Trainer-Tags am Kurs ──────────────────────────────────────────
+let editKursTags = [];
+
+function kursTrainerNames(kurs) {
+    if (kurs.trainers && kurs.trainers.length) {
+        return kurs.trainers.map(id => {
+            const t = trainers.find(x => x.id === id);
+            return t ? trainerLabel(t) : '?';
+        });
+    }
+    return kurs.trainer ? [kurs.trainer] : [];   // alt: Freitext-Trainer
+}
+function kursTrainerChipsHTML(kurs) {
+    return kursTrainerNames(kurs).map(n => ` <span class="kurs-trainer">👤 ${esc(n)}</span>`).join('');
+}
+function renderKursTags() {
+    const c = document.getElementById('kurs-trainer-tags');
+    if (!c) return;
+    if (!trainers.length) { c.innerHTML = '<span style="font-size:.8rem;color:#94a3b8">— keine Trainer geladen —</span>'; return; }
+    c.innerHTML = trainers.map(t => {
+        const sel = editKursTags.includes(t.id);
+        return `<button type="button" class="kurs-tag-chip ${sel ? 'sel' : ''}" onclick="toggleKursTag('${t.id}')">${sel ? '✓ ' : ''}${esc(trainerLabel(t))}</button>`;
+    }).join('');
+}
+function toggleKursTag(id) {
+    const i = editKursTags.indexOf(id);
+    if (i >= 0) editKursTags.splice(i, 1); else editKursTags.push(id);
+    renderKursTags();
+}
+
 function openAddKurs() {
     editKursId = null;
     document.getElementById('modal-kurs-title').textContent = 'Kurs anlegen';
     document.getElementById('kurs-name').value = '';
-    document.getElementById('kurs-trainer').value = '';
+    editKursTags = supaUser ? [supaUser.id] : [];
+    renderKursTags();
     document.getElementById('kurs-jahrgang').value = '';
     document.getElementById('kurs-jahrgang-bis').value = '';
     document.getElementById('kurs-von').value = '';
@@ -2642,7 +2682,8 @@ function openEditKurs(id) {
     const kurs = getKurs(id); if (!kurs) return;
     document.getElementById('modal-kurs-title').textContent = 'Kurs bearbeiten';
     document.getElementById('kurs-name').value = kurs.name;
-    document.getElementById('kurs-trainer').value = kurs.trainer || '';
+    editKursTags = (kurs.trainers && kurs.trainers.slice()) || (supaUser ? [supaUser.id] : []);
+    renderKursTags();
     document.getElementById('kurs-jahrgang').value = kurs.jahrgang || '';
     document.getElementById('kurs-jahrgang-bis').value = kurs.jahrgangBis || '';
     document.getElementById('kurs-von').value = kurs.von || '';
@@ -2654,16 +2695,16 @@ function openEditKurs(id) {
 function saveKurs() {
     const name = document.getElementById('kurs-name').value.trim();
     if (!name) { document.getElementById('kurs-name').focus(); return; }
-    const trainer     = document.getElementById('kurs-trainer').value.trim() || null;
+    const trainers_   = editKursTags.slice();
     const wochentag   = parseInt(document.getElementById('kurs-tag').value);
     const jahrgang    = parseInt(document.getElementById('kurs-jahrgang').value) || null;
     const jahrgangBis = parseInt(document.getElementById('kurs-jahrgang-bis').value) || null;
     const von = document.getElementById('kurs-von').value;
     const bis = document.getElementById('kurs-bis').value;
     if (editKursId) {
-        Object.assign(getKurs(editKursId), { name, trainer, wochentag, jahrgang, jahrgangBis, von, bis });
+        Object.assign(getKurs(editKursId), { name, trainers: trainers_, trainer: null, wochentag, jahrgang, jahrgangBis, von, bis });
     } else {
-        state.kurse.push({ id: uid(), name, trainer, wochentag, jahrgang, jahrgangBis, von, bis });
+        state.kurse.push({ id: uid(), name, trainers: trainers_, wochentag, jahrgang, jahrgangBis, von, bis });
     }
     currentDay = wochentag;
     save(); closeModal('modal-kurs'); renderKurse();
