@@ -1030,18 +1030,20 @@
         .anw-ausfall-chip button:hover { background: #fca5a5; }
         .anw-ausfall-keine { font-size: 0.78rem; color: #94a3b8; font-style: italic; }
 
-        /* ── PC/Desktop: alles mittig auf einer zentrierten Spur (Handy unberührt) ── */
+        /* ── Alles mittig zentriert (PC + Handy) ── */
+        .nav { justify-content: center; }
+        .toolbar { justify-content: center; }
+        .chips-row { justify-content: center; }
+        .daybar-actions { justify-content: center; }
+        .anw-dateline { align-items: center; }
+        .anw-dateline-actions { justify-content: center; }
+
+        /* ── PC/Desktop: Kopf + Nav zusätzlich auf zentrierte 720px-Spur ── */
         @media (min-width: 760px) {
             .header, .nav {
                 padding-left:  calc((100% - 720px) / 2);
                 padding-right: calc((100% - 720px) / 2);
             }
-            .nav { justify-content: center; }
-            .toolbar { justify-content: center; }
-            .chips-row { justify-content: center; }
-            .daybar-actions { justify-content: center; }
-            .anw-dateline { align-items: center; }
-            .anw-dateline-actions { justify-content: center; }
         }
 
         @media (max-width: 500px) {
@@ -1876,8 +1878,7 @@ function toggleFavorit(kursId) {
 function renderDayChips() {
     const row = document.getElementById('day-chips');
     const favCnt = state.kurse.filter(k => k.favorit).length;
-    let html = `<button class="chip ${currentDay === 'alle' ? 'chip-active' : ''}" onclick="setDay('alle')">Alle</button>`;
-    html += `<button class="chip ${currentDay === 'favoriten' ? 'chip-active' : ''}" onclick="setDay('favoriten')" title="Nur Favoriten-Kurse">★${favCnt ? ' ' + favCnt : ''}</button>`;
+    let html = `<button class="chip ${currentDay === 'favoriten' ? 'chip-active' : ''}" onclick="setDay('favoriten')" title="Nur Favoriten-Kurse">★${favCnt ? ' ' + favCnt : ''}</button>`;
     WOCHENTAGE_KURZ.forEach((kurz, i) => {
         const cnt = state.kurse.filter(k => k.wochentag === i).length;
         const active = currentDay === i;
