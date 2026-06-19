@@ -1457,6 +1457,7 @@
 
 <script>
 const STORAGE_KEY = 'schwimmtrainer_v1';
+const STORAGE_USER_KEY = 'schwimmtrainer_cacheuser';   // welchem Konto der lokale Zwischenspeicher gehört
 
 const WOCHENTAGE = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 const WOCHENTAGE_KURZ = ['Mo','Di','Mi','Do','Fr','Sa','So'];
@@ -1599,6 +1600,7 @@ function save() {
     // Offline-Puffer nur für den EIGENEN Bereich (fremde Bereiche nicht lokal cachen)
     if (!supaUser || viewingId === supaUser.id) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (supaUser) localStorage.setItem(STORAGE_USER_KEY, supaUser.id);
     }
     schedulePush();                                             // in die Cloud (debounced)
 }
@@ -2986,13 +2988,15 @@ async function loadFromCloud() {
         const { data, error } = await supa.from('trainer_data').select('state').eq('user_id', viewingId).maybeSingle();
         if (error) throw error;
         const cloud = data ? data.state : null;
+        // gehört der lokale Zwischenspeicher überhaupt DIESEM Konto?
+        const cacheMine = localStorage.getItem(STORAGE_USER_KEY) === supaUser.id;
         let migrate = false;
         if (cloud && !isEmptyState(cloud)) {
             state = normalizeState(cloud);
-        } else if (self && !isEmptyState(state)) {
-            migrate = true;                  // Cloud leer, lokal Daten → behalten + hochladen
+        } else if (self && cacheMine && !isEmptyState(state)) {
+            migrate = true;                  // eigener Cache + Cloud leer → einmalig hochladen
         } else {
-            state = normalizeState({});
+            state = normalizeState({});      // fremder/leerer Cache → leer starten (keine Übernahme!)
         }
         // 2) geteilte Kurse dazumischen (mit viewingId getaggt)
         try {
@@ -3000,7 +3004,10 @@ async function loadFromCloud() {
             mergeSharedIntoState(rows);
         } catch(e2) { /* Tabelle fehlt o.ä. → ohne geteilte Kurse weiter */ }
         ensureStufen();
-        if (self) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (self) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            localStorage.setItem(STORAGE_USER_KEY, supaUser.id);
+        }
         if (migrate) await pushToCloud();
         setCloudDot('ok');
         return true;
@@ -3165,6 +3172,9 @@ async function saveMyName(val) {
 async function doLogout() {
     if (!confirm('Abmelden? Deine Daten bleiben in der Cloud gespeichert.')) return;
     try { await supa.auth.signOut(); } catch(e) {}
+    // lokalen Zwischenspeicher leeren, damit das nächste Konto nichts übernimmt
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_USER_KEY);
     location.reload();
 }
 
