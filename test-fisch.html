@@ -39,7 +39,7 @@
 
     /* ── Lottie-Schatten (Test) ── */
     .lottie-layer { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; display:none; }
-    .lfish { position:absolute; top:0; left:0; width:230px; height:90px; filter:brightness(0) blur(1.4px); opacity:.26; }
+    .lfish { position:absolute; top:0; left:0; width:300px; height:118px; filter:brightness(0) blur(1.2px); opacity:.5; }
     .lfish svg, .lfish canvas { width:100% !important; height:100% !important; }
     @keyframes fish-ltr { 0% { transform: translate(-260px, var(--t-sy,40vh)); opacity:0; } 8%{opacity:1;} 92%{opacity:1;} 100% { transform: translate(calc(100vw + 260px), var(--t-ey,55vh)); opacity:0; } }
     @keyframes fish-rtl { 0% { transform: translate(calc(100vw + 260px), var(--t-sy,40vh)) scaleX(-1); opacity:0; } 8%{opacity:1;} 92%{opacity:1;} 100% { transform: translate(-260px, var(--t-ey,55vh)) scaleX(-1); opacity:0; } }
@@ -81,6 +81,7 @@
 <div class="lottie-layer" id="layer-lottie" aria-hidden="true">
     <div class="lfish" id="lf1"></div>
     <div class="lfish" id="lf2"></div>
+    <div class="lfish" id="lf3"></div>
 </div>
 
 <div class="mode-bar">
@@ -114,7 +115,7 @@
     });
 
     // ── Lottie laden ──
-    ['lf1', 'lf2'].forEach(function (id) {
+    ['lf1', 'lf2', 'lf3'].forEach(function (id) {
         lottie.loadAnimation({ container: document.getElementById(id), renderer: 'svg', loop: true, autoplay: true, path: 'fish.json' });
     });
     function swimFish(el, ltr) {
@@ -133,7 +134,12 @@
         document.getElementById('mode-name').textContent = (mode === 'svg') ? 'SVG' : 'Lottie';
         document.getElementById('layer-svg').style.display = (mode === 'svg') ? 'block' : 'none';
         document.getElementById('layer-lottie').style.display = (mode === 'lottie') ? 'block' : 'none';
-        if (mode === 'lottie' && !fishStarted) { fishStarted = true; swimFish(document.getElementById('lf1'), true); setTimeout(function () { swimFish(document.getElementById('lf2'), false); }, 2500); }
+        if (mode === 'lottie' && !fishStarted) {
+            fishStarted = true;
+            swimFish(document.getElementById('lf1'), true);
+            setTimeout(function () { swimFish(document.getElementById('lf2'), false); }, 5000);
+            setTimeout(function () { swimFish(document.getElementById('lf3'), true); }, 10000);
+        }
     });
 })();
 </script>
