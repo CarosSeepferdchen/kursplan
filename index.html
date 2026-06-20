@@ -1082,16 +1082,15 @@
 
         @keyframes cloudPulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-        /* ── Schildkröten 2.0 (Tropfen-Panzer + Bumerang-Flossen) ─ */
-        @keyframes turtle-swim-a { 0% { transform: translate(-240px, var(--t-sy,55vh)) rotate(-12deg); opacity:0; } 8%{opacity:1;} 92%{opacity:1;} 50% { transform: translate(48vw, var(--t-my,44vh)) rotate(var(--t-mr,-12deg)); } 100% { transform: translate(calc(100vw + 240px), var(--t-ey,32vh)) rotate(-12deg); opacity:0; } }
-        @keyframes turtle-swim-b { 0% { transform: translate(calc(100vw + 240px), var(--t-sy,48vh)) scaleX(-1) rotate(-12deg); opacity:0; } 8%{opacity:1;} 92%{opacity:1;} 50% { transform: translate(48vw, var(--t-my,60vh)) scaleX(-1) rotate(var(--t-mr,-12deg)); } 100% { transform: translate(-240px, var(--t-ey,70vh)) scaleX(-1) rotate(-12deg); opacity:0; } }
+        /* ── Schildkröten 2.1 (Tropfen-Panzer, Bumerang-Flossen, Kurven-Schwimmen) ─ */
+        @keyframes swim { 0% { offset-distance:0%; opacity:0; } 7% { opacity:1; } 93% { opacity:1; } 100% { offset-distance:100%; opacity:0; } }
         @keyframes flapFU { 0%,100%{transform:rotate(-17deg);} 50%{transform:rotate(13deg);} }
         @keyframes flapFL { 0%,100%{transform:rotate(17deg);} 50%{transform:rotate(-13deg);} }
         @keyframes flapRU { 0%,100%{transform:rotate(-7deg);} 50%{transform:rotate(8deg);} }
         @keyframes flapRL { 0%,100%{transform:rotate(7deg);} 50%{transform:rotate(-8deg);} }
         @keyframes headbob { 0%,100%{transform:rotate(-4deg);} 50%{transform:rotate(4deg);} }
         .turtle-layer { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; color:rgb(11,46,82); --top:0.26; }
-        .turtle { position:absolute; top:0; left:0; }
+        .turtle { position:absolute; top:0; left:0; offset-rotate:auto; will-change:offset-distance; }
         .turtle svg { width:100%; height:100%; overflow:visible; display:block; opacity:var(--top,0.26); }
         .t-front-up { transform-box:view-box; transform-origin:126px 72px; animation:flapFU 1.5s ease-in-out infinite; }
         .t-front-lo { transform-box:view-box; transform-origin:126px 108px; animation:flapFL 1.5s ease-in-out infinite; }
@@ -3135,7 +3134,7 @@ function startApp() {
 
 load();
 
-// ── Schildkröten 2.0 (Tropfen-Panzer + Bumerang-Flossen, paddelnd) ──
+// ── Schildkröten 2.1 (Tropfen-Panzer + Bumerang-Flossen, Kurven-Schwimmen in Kopfrichtung) ──
 (function() {
     var TURTLE = '<svg viewBox="0 0 220 180" xmlns="http://www.w3.org/2000/svg" fill="currentColor">'
         + '<g class="t-rear-up"><path d="M86,76 C74,54 58,42 46,42 C50,57 60,69 76,78 C80,80 84,79 86,76 Z"/></g>'
@@ -3148,27 +3147,35 @@ load();
         + '</svg>';
     var layer = document.getElementById('turtle-layer');
     if (!layer) return;
-    var COUNT = 4, SIZE = 1;
-    function swim(el) {
-        var ltr = el.dataset.dir === 'a';
-        var s = 12+Math.random()*66, e = 12+Math.random()*66, avg=(s+e)/2, my, mr;
-        if (Math.random()<0.45){ var dev=16+Math.random()*24; my=Math.max(6,Math.min(90,avg+(Math.random()<.5?-dev:dev))); mr=-12+(my<avg?-8:8); }
-        else { my=avg+(Math.random()-.5)*10; mr=-12; }
-        el.style.setProperty('--t-sy',s.toFixed(1)+'vh'); el.style.setProperty('--t-my',my.toFixed(1)+'vh');
-        el.style.setProperty('--t-ey',e.toFixed(1)+'vh'); el.style.setProperty('--t-mr',mr.toFixed(1)+'deg');
-        var dur = ((ltr?22:27) + (Math.random()-.5)*4).toFixed(1);
-        el.style.animation='none'; void el.offsetWidth;
-        el.style.animation = (ltr?'turtle-swim-a':'turtle-swim-b')+' '+dur+'s ease-in-out forwards';
+    var COUNT = 3, SIZE = 1;
+    function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+    function wavyPath(){
+        var w = window.innerWidth, h = window.innerHeight;
+        var ltr = Math.random() < 0.5;
+        var sx = ltr ? -260 : w+260, ex = ltr ? w+260 : -260;
+        var X = function(t){ return Math.round(sx + (ex-sx)*t); };
+        var y0 = clamp(0.12*h + Math.random()*0.7*h, 40, h-40);
+        var amp = (0.10 + Math.random()*0.15)*h;
+        var s1 = Math.random()<0.5 ? 1 : -1;
+        var yA = Math.round(clamp(y0 + s1*amp, 30, h-30));
+        var yB = Math.round(clamp(y0 - s1*amp*0.85, 30, h-30));
+        var yC = Math.round(clamp(y0 + s1*amp*0.4 + (Math.random()-0.5)*50, 30, h-30));
+        return 'M '+X(0)+' '+Math.round(y0)+' C '+X(0.16)+' '+yA+' '+X(0.34)+' '+yA+' '+X(0.5)+' '+yB+' S '+X(0.82)+' '+yC+' '+X(1)+' '+yC;
+    }
+    function swim(el){
+        el.style.offsetPath = "path('" + wavyPath() + "')";
+        var dur = (20 + Math.random()*12).toFixed(1);
+        el.style.animation = 'none'; void el.offsetWidth;
+        el.style.animation = 'swim ' + dur + 's linear forwards';
         el.addEventListener('animationend', function(){ swim(el); }, { once:true });
     }
     var w = Math.round(190*SIZE), h = Math.round(w*180/220);
     for (var i=0;i<COUNT;i++){
         var d=document.createElement('div');
         d.className='turtle'; d.style.width=w+'px'; d.style.height=h+'px';
-        d.dataset.dir = (i%2===0)?'a':'b';
         d.innerHTML=TURTLE;
         layer.appendChild(d);
-        (function(el,idx){ setTimeout(function(){ swim(el); }, idx*1400 + Math.random()*900); })(d,i);
+        (function(el,idx){ setTimeout(function(){ swim(el); }, idx*2600 + Math.random()*1500); })(d,i);
     }
 }());
 
