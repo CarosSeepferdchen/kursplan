@@ -3134,7 +3134,7 @@ function startApp() {
 
 load();
 
-// ── Schildkröten 2.3 (randomisierter Start aus versch. Seiten, variierte Kurven, sanftes Spaß-Tempo) ──
+// ── Schildkröten 2.4 (Fix: kein Stillstand am Start; + gelegentliche Looping-Schleife) ──
 (function() {
     var TURTLE = '<svg viewBox="0 0 220 180" xmlns="http://www.w3.org/2000/svg" fill="currentColor">'
         + '<g class="t-rear-up"><path d="M86,76 C74,54 58,42 46,42 C50,57 60,69 76,78 C80,80 84,79 86,76 Z"/></g>'
@@ -3149,6 +3149,30 @@ load();
     if (!layer) return;
     var COUNT = 3, SIZE = 1;
     function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+    function smoothPath(pts){
+        var d='M '+pts[0][0]+' '+pts[0][1];
+        for(var i=0;i<pts.length-1;i++){
+            var p0=pts[i-1]||pts[i], p1=pts[i], p2=pts[i+1], p3=pts[i+2]||pts[i+1];
+            d+=' C '+Math.round(p1[0]+(p2[0]-p0[0])/6)+' '+Math.round(p1[1]+(p2[1]-p0[1])/6)
+               +' '+Math.round(p2[0]-(p3[0]-p1[0])/6)+' '+Math.round(p2[1]-(p3[1]-p1[1])/6)
+               +' '+Math.round(p2[0])+' '+Math.round(p2[1]);
+        }
+        return d;
+    }
+    function loopPath(sx,ex,yc,lo,hi,ltr){
+        var dir=ltr?1:-1;
+        var lx=sx+(ex-sx)*0.5;
+        var R=Math.round(Math.min((yc-lo)*0.48,(hi-yc)*0.95,Math.abs(ex-sx)*0.05));
+        if(R<14) return null;
+        var pts=[[Math.round(sx),Math.round(yc)],[Math.round(lx-dir*R*2.2),Math.round(yc)]];
+        for(var i=0;i<=18;i++){
+            var u=i/18;
+            pts.push([ Math.round((lx-dir*R)+dir*(2*R*u+R*Math.sin(2*Math.PI*u))), Math.round(yc-R*(1-Math.cos(2*Math.PI*u))) ]);
+        }
+        pts.push([Math.round(lx+dir*R*2.2),Math.round(yc)]);
+        pts.push([Math.round(ex),Math.round(yc)]);
+        return smoothPath(pts);
+    }
     function wavyPath(lane){
         var w = window.innerWidth, h = window.innerHeight, laneH = h/COUNT;
         var yc = laneH*(lane+0.5);
@@ -3159,6 +3183,7 @@ load();
         var X = function(t){ return Math.round(sx + (ex-sx)*t); };
         var Y = function(y){ return Math.round(clamp(y, lo, hi)); };
         var s1 = Math.random()<0.5 ? 1 : -1;
+        if (Math.random() < 0.22) { var lp = loopPath(sx,ex,yc,lo,hi,ltr); if (lp) return lp; }
         if (Math.random() < 0.5) {
             return 'M '+X(0)+' '+Y(yc-s1*amp*0.5)+' C '+X(0.3)+' '+Y(yc+s1*amp)+' '+X(0.7)+' '+Y(yc+s1*amp)+' '+X(1)+' '+Y(yc-s1*amp*0.5);
         }
@@ -3181,6 +3206,7 @@ load();
         d.className='turtle'; d.style.width=w+'px'; d.style.height=h+'px';
         d.dataset.lane = order[i];
         d.innerHTML=TURTLE;
+        d.style.offsetPath = "path('" + wavyPath(order[i]) + "')";
         layer.appendChild(d);
         (function(el,dl){ setTimeout(function(){ swim(el); }, dl); })(d, delay);
         delay += 1300 + Math.random()*2700;
