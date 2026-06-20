@@ -3135,7 +3135,7 @@ function startApp() {
 
 load();
 
-// ── Schildkröten 2.7 (alle Richtungen: seitlich + hoch/runter + diagonal, Zick-Zack) ──
+// ── Schildkröten 2.8 (Rand-/Diagonal-Bahnen statt Mitte, immer mind. eine sichtbar) ──
 (function() {
     var TURTLE = '<svg viewBox="0 0 220 180" xmlns="http://www.w3.org/2000/svg" fill="currentColor">'
         + '<g class="t-rear-up"><path d="M86,76 C74,54 58,42 46,42 C50,57 60,69 76,78 C80,80 84,79 86,76 Z"/></g>'
@@ -3172,10 +3172,11 @@ load();
     }
     function loopH(w,h){
         var ltr=Math.random()<0.5, dir=ltr?1:-1;
-        var sx=ltr?-260:w+260, ex=ltr?w+260:-260, lx=sx+(ex-sx)*0.5;
+        var sx=ltr?-220:w+220, ex=ltr?w+220:-220, lx=sx+(ex-sx)*0.5;
         var R=Math.round(Math.min(h*0.20, Math.abs(ex-sx)*0.105));
         if(R<20) return null;
-        var yb=Math.round(rr(2*R+24, h-24));
+        var yb = Math.random()<0.5 ? Math.round(rr(2*R+20, 0.34*h)) : Math.round(rr(0.66*h, h-20));
+        if(yb-2*R<16) yb=2*R+16;
         var pts=[[Math.round(sx),yb],[Math.round(lx-dir*R*3),yb],[Math.round(lx-dir*R*1.8),yb]];
         var N=36;
         for(var i=0;i<=N;i++){var u=i/N;pts.push([Math.round((lx-dir*R)+dir*(2*R*u+R*Math.sin(2*Math.PI*u))),Math.round(yb-R*(1-Math.cos(2*Math.PI*u)))]);}
@@ -3183,34 +3184,36 @@ load();
         return smoothPath(pts);
     }
     function makePath(){
-        var w=window.innerWidth, h=window.innerHeight, n=4+Math.floor(Math.random()*4);
+        var w=window.innerWidth, h=window.innerHeight, n=5+Math.floor(Math.random()*4);
         if(Math.random()<0.5){
-            if(Math.random()<0.20){ var lp=loopH(w,h); if(lp) return {d:lp,loop:true}; }
-            var ltr=Math.random()<0.5;
-            return {d:zigzag(ltr?-260:w+260, rr(0.10,0.90)*h, ltr?w+260:-260, rr(0.10,0.90)*h, rr(0.07,0.20)*h, n), loop:false};
+            if(Math.random()<0.16){ var lp=loopH(w,h); if(lp) return {d:lp,loop:true}; }
+            var ltr=Math.random()<0.5, top=Math.random()<0.5;
+            var sy=(top?rr(0.04,0.22):rr(0.78,0.96))*h, ey=(top?rr(0.04,0.22):rr(0.78,0.96))*h;
+            return {d:zigzag(ltr?-150:w+150, sy, ltr?w+150:-150, ey, rr(0.05,0.12)*h, n), loop:false};
         } else {
-            var ttb=Math.random()<0.5;
-            return {d:zigzag(rr(0.10,0.90)*w, ttb?-240:h+240, rr(0.10,0.90)*w, ttb?h+240:-240, rr(0.07,0.22)*w, n), loop:false};
+            var ttb=Math.random()<0.5, left=Math.random()<0.5;
+            var sx=(left?rr(0.04,0.22):rr(0.78,0.96))*w, ex=(left?rr(0.04,0.22):rr(0.78,0.96))*w;
+            return {d:zigzag(sx, ttb?-150:h+150, ex, ttb?h+150:-150, rr(0.05,0.13)*w, n), loop:false};
         }
     }
-    function swim(el){
+    function swim(el, firstMid){
         var p = makePath();
         el.style.offsetPath = "path('" + p.d + "')";
-        var dur = (p.loop ? rr(27,36) : rr(19,32)).toFixed(1);
+        var dur = (p.loop ? rr(27,36) : rr(19,30));
+        var delay = firstMid ? ('-'+(dur*rr(0.30,0.55)).toFixed(1)+'s') : '0s';
         el.style.animation = 'none'; void el.offsetWidth;
-        el.style.animation = (p.loop ? 'swimSmooth ' : 'swim ') + dur + 's linear forwards';
-        el.addEventListener('animationend', function(){ swim(el); }, { once:true });
+        el.style.animation = (p.loop ? 'swimSmooth ' : 'swim ') + dur.toFixed(1) + 's linear ' + delay + ' forwards';
+        el.addEventListener('animationend', function(){ swim(el,false); }, { once:true });
     }
     var w = Math.round(190*SIZE), h = Math.round(w*180/220);
-    var delay = 200 + Math.random()*700;
     for (var i=0;i<COUNT;i++){
         var d=document.createElement('div');
         d.className='turtle'; d.style.width=w+'px'; d.style.height=h+'px';
         d.innerHTML=TURTLE;
         d.style.offsetPath = "path('" + makePath().d + "')";
         layer.appendChild(d);
-        (function(el,dl){ setTimeout(function(){ swim(el); }, dl); })(d, delay);
-        delay += 1300 + Math.random()*2700;
+        if(i===0){ swim(d, true); }
+        else { (function(el,dl){ setTimeout(function(){ swim(el,false); }, dl); })(d, 1700*i + Math.random()*1400); }
     }
 }());
 
