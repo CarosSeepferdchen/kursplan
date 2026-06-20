@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Wasser-Kaustik Test</title>
+<style>
+    @keyframes waterGrad { 0%,100% { background-position: 0% 60%; } 50% { background-position: 100% 40%; } }
+    body { margin:0; min-height:100vh; overflow:hidden; position:relative;
+        background:linear-gradient(-45deg,#3fa9cf,#5fc6df,#36a6cf,#62cbe3,#2f9bc6,#73d2e8); background-size:500% 500%; animation:waterGrad 22s ease infinite; }
+
+    .caustic { position:fixed; inset:-35%; pointer-events:none; mix-blend-mode:screen; will-change:transform; }
+    .caustic svg { width:100%; height:100%; display:block; }
+    .c1 { opacity:.50; animation:drift1 26s ease-in-out infinite; }
+    .c2 { opacity:.32; animation:drift2 34s ease-in-out infinite; }
+    @keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1.0);} 50%{transform:translate(4%,3%) scale(1.14);} }
+    @keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1.12) rotate(0deg);} 50%{transform:translate(-5%,-3%) scale(1.0) rotate(2deg);} }
+
+    .panel { position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:50; background:rgba(255,255,255,.85); border-radius:14px; padding:8px 14px; font:14px -apple-system,system-ui,sans-serif; color:#0c2662; box-shadow:0 4px 16px rgba(12,38,98,.2); }
+</style>
+</head>
+<body>
+<div class="caustic c1" aria-hidden="true"><svg viewBox="0 0 700 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <filter id="cf1" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.014 0.017" numOctaves="2" seed="6" stitchTiles="stitch" result="t"/>
+        <feColorMatrix in="t" type="luminanceToAlpha" result="l"/>
+        <feComponentTransfer in="l" result="m"><feFuncA type="table" tableValues="0 0 0.1 0.6 1 0.6 0.1 0 0"/></feComponentTransfer>
+        <feFlood flood-color="#e6ffff" result="w"/>
+        <feComposite in="w" in2="m" operator="in"/>
+    </filter>
+    <rect width="700" height="700" filter="url(#cf1)"/>
+</svg></div>
+<div class="caustic c2" aria-hidden="true"><svg viewBox="0 0 700 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <filter id="cf2" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.02 0.016" numOctaves="2" seed="23" stitchTiles="stitch" result="t"/>
+        <feColorMatrix in="t" type="luminanceToAlpha" result="l"/>
+        <feComponentTransfer in="l" result="m"><feFuncA type="table" tableValues="0 0 0.1 0.6 1 0.6 0.1 0 0"/></feComponentTransfer>
+        <feFlood flood-color="#d8fbff" result="w"/>
+        <feComposite in="w" in2="m" operator="in"/>
+    </filter>
+    <rect width="700" height="700" filter="url(#cf2)"/>
+</svg></div>
+
+<div class="panel">Wasser-Kaustik Prototyp v3</div>
+</body>
+</html>
