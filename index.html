@@ -1082,8 +1082,8 @@
 
         @keyframes cloudPulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-        /* ── Schildkröten 2.2 (Kurven-Schwimmen, getrennte Bahnen, Spaß-Tempo) ─ */
-        @keyframes swim { 0% { offset-distance:0%; opacity:0; } 6% { opacity:1; } 16% { offset-distance:22%; } 30% { offset-distance:42%; } 44% { offset-distance:50%; } 58% { offset-distance:58%; } 72% { offset-distance:80%; } 86% { offset-distance:90%; } 94% { opacity:1; } 100% { offset-distance:100%; opacity:0; } }
+        /* ── Schildkröten 2.3 (randomisierter Start, variierte Kurven, sanftes Spaß-Tempo) ─ */
+        @keyframes swim { 0% { offset-distance:0.0%;opacity:0; } 6% { offset-distance:3.4%;opacity:1; } 12% { offset-distance:8.5%; } 19% { offset-distance:15.9%; } 25% { offset-distance:25.0%; } 31% { offset-distance:34.1%; } 38% { offset-distance:41.5%; } 44% { offset-distance:46.6%; } 50% { offset-distance:50.0%; } 56% { offset-distance:53.4%; } 62% { offset-distance:58.5%; } 69% { offset-distance:65.9%; } 75% { offset-distance:75.0%; } 81% { offset-distance:84.1%; } 88% { offset-distance:91.5%; } 94% { offset-distance:96.6%;opacity:1; } 100% { offset-distance:100.0%;opacity:0; } }
         @keyframes flapFU { 0%,100%{transform:rotate(-17deg);} 50%{transform:rotate(13deg);} }
         @keyframes flapFL { 0%,100%{transform:rotate(17deg);} 50%{transform:rotate(-13deg);} }
         @keyframes flapRU { 0%,100%{transform:rotate(-7deg);} 50%{transform:rotate(8deg);} }
@@ -3134,7 +3134,7 @@ function startApp() {
 
 load();
 
-// ── Schildkröten 2.2 (getrennte Höhen-Bahnen je Tier + variables Spaß-Tempo) ──
+// ── Schildkröten 2.3 (randomisierter Start aus versch. Seiten, variierte Kurven, sanftes Spaß-Tempo) ──
 (function() {
     var TURTLE = '<svg viewBox="0 0 220 180" xmlns="http://www.w3.org/2000/svg" fill="currentColor">'
         + '<g class="t-rear-up"><path d="M86,76 C74,54 58,42 46,42 C50,57 60,69 76,78 C80,80 84,79 86,76 Z"/></g>'
@@ -3152,14 +3152,17 @@ load();
     function wavyPath(lane){
         var w = window.innerWidth, h = window.innerHeight, laneH = h/COUNT;
         var yc = laneH*(lane+0.5);
-        var amp = laneH*0.30*(0.6+Math.random()*0.4);
+        var amp = laneH*0.34*(0.4+Math.random()*0.6);
         var lo = yc-amp, hi = yc+amp;
         var ltr = Math.random() < 0.5;
         var sx = ltr ? -260 : w+260, ex = ltr ? w+260 : -260;
         var X = function(t){ return Math.round(sx + (ex-sx)*t); };
         var Y = function(y){ return Math.round(clamp(y, lo, hi)); };
         var s1 = Math.random()<0.5 ? 1 : -1;
-        return 'M '+X(0)+' '+Y(yc)+' C '+X(0.16)+' '+Y(yc+s1*amp)+' '+X(0.34)+' '+Y(yc+s1*amp)+' '+X(0.5)+' '+Y(yc-s1*amp*0.8)+' S '+X(0.82)+' '+Y(yc+s1*amp*0.3)+' '+X(1)+' '+Y(yc+s1*amp*0.3);
+        if (Math.random() < 0.5) {
+            return 'M '+X(0)+' '+Y(yc-s1*amp*0.5)+' C '+X(0.3)+' '+Y(yc+s1*amp)+' '+X(0.7)+' '+Y(yc+s1*amp)+' '+X(1)+' '+Y(yc-s1*amp*0.5);
+        }
+        return 'M '+X(0)+' '+Y(yc)+' C '+X(0.16)+' '+Y(yc+s1*amp)+' '+X(0.34)+' '+Y(yc+s1*amp)+' '+X(0.5)+' '+Y(yc-s1*amp)+' S '+X(0.82)+' '+Y(yc-s1*amp*0.3)+' '+X(1)+' '+Y(yc+s1*amp*0.4);
     }
     function swim(el){
         el.style.offsetPath = "path('" + wavyPath(+el.dataset.lane) + "')";
@@ -3169,13 +3172,18 @@ load();
         el.addEventListener('animationend', function(){ swim(el); }, { once:true });
     }
     var w = Math.round(190*SIZE), h = Math.round(w*180/220);
+    var order = [];
+    for (var L=0;L<COUNT;L++) order.push(L);
+    for (var n=order.length-1;n>0;n--){ var m=Math.floor(Math.random()*(n+1)); var tmp=order[n]; order[n]=order[m]; order[m]=tmp; }
+    var delay = 200 + Math.random()*700;
     for (var i=0;i<COUNT;i++){
         var d=document.createElement('div');
         d.className='turtle'; d.style.width=w+'px'; d.style.height=h+'px';
-        d.dataset.lane = i;
+        d.dataset.lane = order[i];
         d.innerHTML=TURTLE;
         layer.appendChild(d);
-        (function(el,idx){ setTimeout(function(){ swim(el); }, idx*2600 + Math.random()*1500); })(d,i);
+        (function(el,dl){ setTimeout(function(){ swim(el); }, dl); })(d, delay);
+        delay += 1300 + Math.random()*2700;
     }
 }());
 
