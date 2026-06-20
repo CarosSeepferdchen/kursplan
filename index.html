@@ -1084,6 +1084,7 @@
 
         /* ── Schildkröten 2.3 (randomisierter Start, variierte Kurven, sanftes Spaß-Tempo) ─ */
         @keyframes swim { 0% { offset-distance:0.0%;opacity:0; } 6% { offset-distance:3.4%;opacity:1; } 12% { offset-distance:8.5%; } 19% { offset-distance:15.9%; } 25% { offset-distance:25.0%; } 31% { offset-distance:34.1%; } 38% { offset-distance:41.5%; } 44% { offset-distance:46.6%; } 50% { offset-distance:50.0%; } 56% { offset-distance:53.4%; } 62% { offset-distance:58.5%; } 69% { offset-distance:65.9%; } 75% { offset-distance:75.0%; } 81% { offset-distance:84.1%; } 88% { offset-distance:91.5%; } 94% { offset-distance:96.6%;opacity:1; } 100% { offset-distance:100.0%;opacity:0; } }
+        @keyframes swimSmooth { 0% { offset-distance:0%; opacity:0; } 6% { opacity:1; } 94% { opacity:1; } 100% { offset-distance:100%; opacity:0; } }
         @keyframes flapFU { 0%,100%{transform:rotate(-17deg);} 50%{transform:rotate(13deg);} }
         @keyframes flapFL { 0%,100%{transform:rotate(17deg);} 50%{transform:rotate(-13deg);} }
         @keyframes flapRU { 0%,100%{transform:rotate(-7deg);} 50%{transform:rotate(8deg);} }
@@ -3134,7 +3135,7 @@ function startApp() {
 
 load();
 
-// ── Schildkröten 2.5 (größere, flüssigere Looping-Schleife) ──
+// ── Schildkröten 2.6 (Looping: noch größer + flüssiger, gleichmäßiges Tempo) ──
 (function() {
     var TURTLE = '<svg viewBox="0 0 220 180" xmlns="http://www.w3.org/2000/svg" fill="currentColor">'
         + '<g class="t-rear-up"><path d="M86,76 C74,54 58,42 46,42 C50,57 60,69 76,78 C80,80 84,79 86,76 Z"/></g>'
@@ -3162,13 +3163,13 @@ load();
     function loopPath(sx,ex,yc,laneH,ltr){
         var dir=ltr?1:-1;
         var lx=sx+(ex-sx)*0.5;
-        var amp=laneH*0.40;
+        var amp=laneH*0.42;
         var lo=yc-amp, hi=yc+amp;
-        var R=Math.round(Math.min(amp*0.95, Math.abs(ex-sx)*0.075));
+        var R=Math.round(Math.min(amp*0.92, Math.abs(ex-sx)*0.105));
         if(R<18) return null;
         var yb=Math.round(hi-2);
         var pts=[[Math.round(sx),yb],[Math.round(lx-dir*R*3),yb],[Math.round(lx-dir*R*1.8),yb]];
-        var N=30;
+        var N=36;
         for(var i=0;i<=N;i++){
             var u=i/N;
             pts.push([ Math.round((lx-dir*R)+dir*(2*R*u+R*Math.sin(2*Math.PI*u))), Math.round(yb-R*(1-Math.cos(2*Math.PI*u))) ]);
@@ -3178,7 +3179,7 @@ load();
         pts.push([Math.round(ex),yb]);
         return smoothPath(pts);
     }
-    function wavyPath(lane){
+    function makePath(lane){
         var w = window.innerWidth, h = window.innerHeight, laneH = h/COUNT;
         var yc = laneH*(lane+0.5);
         var amp = laneH*0.34*(0.4+Math.random()*0.6);
@@ -3188,17 +3189,18 @@ load();
         var X = function(t){ return Math.round(sx + (ex-sx)*t); };
         var Y = function(y){ return Math.round(clamp(y, lo, hi)); };
         var s1 = Math.random()<0.5 ? 1 : -1;
-        if (Math.random() < 0.22) { var lp = loopPath(sx,ex,yc,laneH,ltr); if (lp) return lp; }
+        if (Math.random() < 0.22) { var lp = loopPath(sx,ex,yc,laneH,ltr); if (lp) return {d:lp, loop:true}; }
         if (Math.random() < 0.5) {
-            return 'M '+X(0)+' '+Y(yc-s1*amp*0.5)+' C '+X(0.3)+' '+Y(yc+s1*amp)+' '+X(0.7)+' '+Y(yc+s1*amp)+' '+X(1)+' '+Y(yc-s1*amp*0.5);
+            return {d:'M '+X(0)+' '+Y(yc-s1*amp*0.5)+' C '+X(0.3)+' '+Y(yc+s1*amp)+' '+X(0.7)+' '+Y(yc+s1*amp)+' '+X(1)+' '+Y(yc-s1*amp*0.5), loop:false};
         }
-        return 'M '+X(0)+' '+Y(yc)+' C '+X(0.16)+' '+Y(yc+s1*amp)+' '+X(0.34)+' '+Y(yc+s1*amp)+' '+X(0.5)+' '+Y(yc-s1*amp)+' S '+X(0.82)+' '+Y(yc-s1*amp*0.3)+' '+X(1)+' '+Y(yc+s1*amp*0.4);
+        return {d:'M '+X(0)+' '+Y(yc)+' C '+X(0.16)+' '+Y(yc+s1*amp)+' '+X(0.34)+' '+Y(yc+s1*amp)+' '+X(0.5)+' '+Y(yc-s1*amp)+' S '+X(0.82)+' '+Y(yc-s1*amp*0.3)+' '+X(1)+' '+Y(yc+s1*amp*0.4), loop:false};
     }
     function swim(el){
-        el.style.offsetPath = "path('" + wavyPath(+el.dataset.lane) + "')";
-        var dur = (20 + Math.random()*12).toFixed(1);
+        var p = makePath(+el.dataset.lane);
+        el.style.offsetPath = "path('" + p.d + "')";
+        var dur = (p.loop ? (27+Math.random()*9) : (20+Math.random()*12)).toFixed(1);
         el.style.animation = 'none'; void el.offsetWidth;
-        el.style.animation = 'swim ' + dur + 's linear forwards';
+        el.style.animation = (p.loop ? 'swimSmooth ' : 'swim ') + dur + 's linear forwards';
         el.addEventListener('animationend', function(){ swim(el); }, { once:true });
     }
     var w = Math.round(190*SIZE), h = Math.round(w*180/220);
@@ -3211,7 +3213,7 @@ load();
         d.className='turtle'; d.style.width=w+'px'; d.style.height=h+'px';
         d.dataset.lane = order[i];
         d.innerHTML=TURTLE;
-        d.style.offsetPath = "path('" + wavyPath(order[i]) + "')";
+        d.style.offsetPath = "path('" + makePath(order[i]).d + "')";
         layer.appendChild(d);
         (function(el,dl){ setTimeout(function(){ swim(el); }, dl); })(d, delay);
         delay += 1300 + Math.random()*2700;
