@@ -1082,8 +1082,8 @@
 
         @keyframes cloudPulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-        /* ── Schildkröten 2.1 (Tropfen-Panzer, Bumerang-Flossen, Kurven-Schwimmen) ─ */
-        @keyframes swim { 0% { offset-distance:0%; opacity:0; } 7% { opacity:1; } 93% { opacity:1; } 100% { offset-distance:100%; opacity:0; } }
+        /* ── Schildkröten 2.2 (Kurven-Schwimmen, getrennte Bahnen, Spaß-Tempo) ─ */
+        @keyframes swim { 0% { offset-distance:0%; opacity:0; } 6% { opacity:1; } 16% { offset-distance:22%; } 30% { offset-distance:42%; } 44% { offset-distance:50%; } 58% { offset-distance:58%; } 72% { offset-distance:80%; } 86% { offset-distance:90%; } 94% { opacity:1; } 100% { offset-distance:100%; opacity:0; } }
         @keyframes flapFU { 0%,100%{transform:rotate(-17deg);} 50%{transform:rotate(13deg);} }
         @keyframes flapFL { 0%,100%{transform:rotate(17deg);} 50%{transform:rotate(-13deg);} }
         @keyframes flapRU { 0%,100%{transform:rotate(-7deg);} 50%{transform:rotate(8deg);} }
@@ -3134,7 +3134,7 @@ function startApp() {
 
 load();
 
-// ── Schildkröten 2.1 (Tropfen-Panzer + Bumerang-Flossen, Kurven-Schwimmen in Kopfrichtung) ──
+// ── Schildkröten 2.2 (getrennte Höhen-Bahnen je Tier + variables Spaß-Tempo) ──
 (function() {
     var TURTLE = '<svg viewBox="0 0 220 180" xmlns="http://www.w3.org/2000/svg" fill="currentColor">'
         + '<g class="t-rear-up"><path d="M86,76 C74,54 58,42 46,42 C50,57 60,69 76,78 C80,80 84,79 86,76 Z"/></g>'
@@ -3149,21 +3149,20 @@ load();
     if (!layer) return;
     var COUNT = 3, SIZE = 1;
     function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
-    function wavyPath(){
-        var w = window.innerWidth, h = window.innerHeight;
+    function wavyPath(lane){
+        var w = window.innerWidth, h = window.innerHeight, laneH = h/COUNT;
+        var yc = laneH*(lane+0.5);
+        var amp = laneH*0.30*(0.6+Math.random()*0.4);
+        var lo = yc-amp, hi = yc+amp;
         var ltr = Math.random() < 0.5;
         var sx = ltr ? -260 : w+260, ex = ltr ? w+260 : -260;
         var X = function(t){ return Math.round(sx + (ex-sx)*t); };
-        var y0 = clamp(0.12*h + Math.random()*0.7*h, 40, h-40);
-        var amp = (0.10 + Math.random()*0.15)*h;
+        var Y = function(y){ return Math.round(clamp(y, lo, hi)); };
         var s1 = Math.random()<0.5 ? 1 : -1;
-        var yA = Math.round(clamp(y0 + s1*amp, 30, h-30));
-        var yB = Math.round(clamp(y0 - s1*amp*0.85, 30, h-30));
-        var yC = Math.round(clamp(y0 + s1*amp*0.4 + (Math.random()-0.5)*50, 30, h-30));
-        return 'M '+X(0)+' '+Math.round(y0)+' C '+X(0.16)+' '+yA+' '+X(0.34)+' '+yA+' '+X(0.5)+' '+yB+' S '+X(0.82)+' '+yC+' '+X(1)+' '+yC;
+        return 'M '+X(0)+' '+Y(yc)+' C '+X(0.16)+' '+Y(yc+s1*amp)+' '+X(0.34)+' '+Y(yc+s1*amp)+' '+X(0.5)+' '+Y(yc-s1*amp*0.8)+' S '+X(0.82)+' '+Y(yc+s1*amp*0.3)+' '+X(1)+' '+Y(yc+s1*amp*0.3);
     }
     function swim(el){
-        el.style.offsetPath = "path('" + wavyPath() + "')";
+        el.style.offsetPath = "path('" + wavyPath(+el.dataset.lane) + "')";
         var dur = (20 + Math.random()*12).toFixed(1);
         el.style.animation = 'none'; void el.offsetWidth;
         el.style.animation = 'swim ' + dur + 's linear forwards';
@@ -3173,6 +3172,7 @@ load();
     for (var i=0;i<COUNT;i++){
         var d=document.createElement('div');
         d.className='turtle'; d.style.width=w+'px'; d.style.height=h+'px';
+        d.dataset.lane = i;
         d.innerHTML=TURTLE;
         layer.appendChild(d);
         (function(el,idx){ setTimeout(function(){ swim(el); }, idx*2600 + Math.random()*1500); })(d,i);
