@@ -25,11 +25,11 @@
     .turtle { position:absolute; top:0; left:0; }
     .turtle svg { width:100%; height:100%; overflow:visible; display:block; opacity:var(--top,0.3); }
 
-    .t-front-up { transform-box:view-box; transform-origin:124px 74px; animation:flapFU 1.5s ease-in-out infinite; }
-    .t-front-lo { transform-box:view-box; transform-origin:124px 106px; animation:flapFL 1.5s ease-in-out infinite; }
-    .t-rear-up  { transform-box:view-box; transform-origin:88px 76px;  animation:flapRU 2.4s ease-in-out infinite; }
-    .t-rear-lo  { transform-box:view-box; transform-origin:88px 104px; animation:flapRL 2.4s ease-in-out infinite; }
-    .t-head     { transform-box:view-box; transform-origin:158px 90px; animation:headbob 3.2s ease-in-out infinite; }
+    .t-front-up { transform-box:view-box; transform-origin:126px 72px; animation:flapFU 1.5s ease-in-out infinite; }
+    .t-front-lo { transform-box:view-box; transform-origin:126px 108px; animation:flapFL 1.5s ease-in-out infinite; }
+    .t-rear-up  { transform-box:view-box; transform-origin:82px 76px;  animation:flapRU 2.4s ease-in-out infinite; }
+    .t-rear-lo  { transform-box:view-box; transform-origin:82px 104px; animation:flapRL 2.4s ease-in-out infinite; }
+    .t-head     { transform-box:view-box; transform-origin:165px 90px; animation:headbob 3.2s ease-in-out infinite; }
     @keyframes flapFU { 0%,100%{transform:rotate(-17deg);} 50%{transform:rotate(13deg);} }
     @keyframes flapFL { 0%,100%{transform:rotate(17deg);} 50%{transform:rotate(-13deg);} }
     @keyframes flapRU { 0%,100%{transform:rotate(-7deg);} 50%{transform:rotate(8deg);} }
@@ -58,13 +58,13 @@
 
 <script>
 var TURTLE = `<svg viewBox="0 0 220 180" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-  <g class="t-rear-up"><path d="M90,76 C78,56 62,44 50,44 C54,58 64,70 80,79 C84,81 88,79 90,76 Z"/></g>
-  <g class="t-rear-lo"><path d="M90,104 C78,124 62,136 50,136 C54,122 64,110 80,101 C84,99 88,101 90,104 Z"/></g>
-  <g class="t-front-up"><path d="M124,74 C150,44 178,28 192,24 C184,46 171,61 154,71 C146,76 134,78 124,74 Z"/></g>
-  <g class="t-front-lo"><path d="M124,106 C150,136 178,152 192,156 C184,134 171,119 154,109 C146,104 134,102 124,106 Z"/></g>
-  <path d="M42,90 C34,87 28,90 28,90 C28,90 34,93 42,91 Z"/>
-  <path d="M38,90 C54,46 104,40 134,51 C155,58 163,74 163,90 C163,106 155,122 134,129 C104,140 54,134 38,90 Z"/>
-  <g class="t-head"><path d="M157,82 C169,78 183,80 191,88 C183,96 169,98 157,98 Z"/><ellipse cx="197" cy="90" rx="12" ry="10"/></g>
+  <g class="t-rear-up"><path d="M86,76 C74,54 58,42 46,42 C50,57 60,69 76,78 C80,80 84,79 86,76 Z"/></g>
+  <g class="t-rear-lo"><path d="M86,104 C74,126 58,138 46,138 C50,123 60,111 76,102 C80,100 84,101 86,104 Z"/></g>
+  <g class="t-front-up"><path d="M126,72 C140,36 164,16 188,10 C186,32 178,52 158,67 C150,73 136,75 126,73 Z"/></g>
+  <g class="t-front-lo"><path d="M126,108 C140,144 164,164 188,170 C186,148 178,128 158,113 C150,107 136,105 126,107 Z"/></g>
+  <path d="M40,90 C32,87 26,90 26,90 C26,90 32,93 40,91 Z"/>
+  <path d="M36,90 C52,46 102,40 132,51 C155,59 165,73 165,90 C165,107 155,121 132,129 C102,140 52,134 36,90 Z"/>
+  <g class="t-head"><ellipse cx="178" cy="90" rx="14" ry="11"/></g>
 </svg>`;
 
 var layer = document.getElementById('layer');
