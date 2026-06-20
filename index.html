@@ -104,8 +104,8 @@
         body::before, body::after, .water-shimmer { display:none !important; }
         .caustic { position:fixed; inset:-35%; pointer-events:none; z-index:0; mix-blend-mode:screen; will-change:transform; }
         .caustic svg { width:100%; height:100%; display:block; }
-        .caustic-1 { opacity:.40; animation:cdrift1 26s ease-in-out infinite; }
-        .caustic-2 { opacity:.24; animation:cdrift2 34s ease-in-out infinite; }
+        .caustic-1 { opacity:.62; animation:cdrift1 26s ease-in-out infinite; }
+        .caustic-2 { opacity:.40; animation:cdrift2 34s ease-in-out infinite; }
         @keyframes cdrift1 { 0%,100%{transform:translate(0,0) scale(1.0);} 50%{transform:translate(4%,3%) scale(1.14);} }
         @keyframes cdrift2 { 0%,100%{transform:translate(0,0) scale(1.12) rotate(0deg);} 50%{transform:translate(-5%,-3%) scale(1.0) rotate(2deg);} }
         .header {
@@ -1183,8 +1183,8 @@
         <div id="auth-error" class="auth-error"></div>
     </div>
 </div>
-<div class="caustic caustic-1" aria-hidden="true"><svg viewBox="0 0 700 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><filter id="cf1" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.014 0.017" numOctaves="2" seed="6" stitchTiles="stitch" result="t"/><feColorMatrix in="t" type="luminanceToAlpha" result="l"/><feComponentTransfer in="l" result="m"><feFuncA type="table" tableValues="0 0 0.1 0.6 1 0.6 0.1 0 0"/></feComponentTransfer><feFlood flood-color="#e6ffff" result="w"/><feComposite in="w" in2="m" operator="in"/></filter><rect width="700" height="700" filter="url(#cf1)"/></svg></div>
-<div class="caustic caustic-2" aria-hidden="true"><svg viewBox="0 0 700 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><filter id="cf2" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.02 0.016" numOctaves="2" seed="23" stitchTiles="stitch" result="t"/><feColorMatrix in="t" type="luminanceToAlpha" result="l"/><feComponentTransfer in="l" result="m"><feFuncA type="table" tableValues="0 0 0.1 0.6 1 0.6 0.1 0 0"/></feComponentTransfer><feFlood flood-color="#d8fbff" result="w"/><feComposite in="w" in2="m" operator="in"/></filter><rect width="700" height="700" filter="url(#cf2)"/></svg></div>
+<div class="caustic caustic-1" aria-hidden="true"><svg viewBox="0 0 700 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><filter id="cf1" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.018 0.021" numOctaves="2" seed="6" stitchTiles="stitch" result="t"/><feColorMatrix in="t" type="luminanceToAlpha" result="l"/><feComponentTransfer in="l" result="m"><feFuncA type="table" tableValues="0 0 0 0.45 1 0.45 0 0 0"/></feComponentTransfer><feFlood flood-color="#e6ffff" result="w"/><feComposite in="w" in2="m" operator="in"/></filter><rect width="700" height="700" filter="url(#cf1)"/></svg></div>
+<div class="caustic caustic-2" aria-hidden="true"><svg viewBox="0 0 700 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><filter id="cf2" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.024 0.019" numOctaves="2" seed="23" stitchTiles="stitch" result="t"/><feColorMatrix in="t" type="luminanceToAlpha" result="l"/><feComponentTransfer in="l" result="m"><feFuncA type="table" tableValues="0 0 0 0.45 1 0.45 0 0 0"/></feComponentTransfer><feFlood flood-color="#d8fbff" result="w"/><feComposite in="w" in2="m" operator="in"/></filter><rect width="700" height="700" filter="url(#cf2)"/></svg></div>
 <div class="water-shimmer" aria-hidden="true"></div>
 <div class="turtle-layer" id="turtle-layer" aria-hidden="true"></div>
 
