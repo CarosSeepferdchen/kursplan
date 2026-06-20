@@ -1,4 +1,4 @@
-const CACHE = 'seepferdchen-v30';
+const CACHE = 'seepferdchen-v31';
 const CACHE_ASSETS = ['./', './manifest.json', './icon-512.png'];
 
 self.addEventListener('install', e => {
