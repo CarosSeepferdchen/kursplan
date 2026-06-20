@@ -3134,7 +3134,7 @@ function startApp() {
 
 load();
 
-// ── Schildkröten 2.4 (Fix: kein Stillstand am Start; + gelegentliche Looping-Schleife) ──
+// ── Schildkröten 2.5 (größere, flüssigere Looping-Schleife) ──
 (function() {
     var TURTLE = '<svg viewBox="0 0 220 180" xmlns="http://www.w3.org/2000/svg" fill="currentColor">'
         + '<g class="t-rear-up"><path d="M86,76 C74,54 58,42 46,42 C50,57 60,69 76,78 C80,80 84,79 86,76 Z"/></g>'
@@ -3159,18 +3159,23 @@ load();
         }
         return d;
     }
-    function loopPath(sx,ex,yc,lo,hi,ltr){
+    function loopPath(sx,ex,yc,laneH,ltr){
         var dir=ltr?1:-1;
         var lx=sx+(ex-sx)*0.5;
-        var R=Math.round(Math.min((yc-lo)*0.48,(hi-yc)*0.95,Math.abs(ex-sx)*0.05));
-        if(R<14) return null;
-        var pts=[[Math.round(sx),Math.round(yc)],[Math.round(lx-dir*R*2.2),Math.round(yc)]];
-        for(var i=0;i<=18;i++){
-            var u=i/18;
-            pts.push([ Math.round((lx-dir*R)+dir*(2*R*u+R*Math.sin(2*Math.PI*u))), Math.round(yc-R*(1-Math.cos(2*Math.PI*u))) ]);
+        var amp=laneH*0.40;
+        var lo=yc-amp, hi=yc+amp;
+        var R=Math.round(Math.min(amp*0.95, Math.abs(ex-sx)*0.075));
+        if(R<18) return null;
+        var yb=Math.round(hi-2);
+        var pts=[[Math.round(sx),yb],[Math.round(lx-dir*R*3),yb],[Math.round(lx-dir*R*1.8),yb]];
+        var N=30;
+        for(var i=0;i<=N;i++){
+            var u=i/N;
+            pts.push([ Math.round((lx-dir*R)+dir*(2*R*u+R*Math.sin(2*Math.PI*u))), Math.round(yb-R*(1-Math.cos(2*Math.PI*u))) ]);
         }
-        pts.push([Math.round(lx+dir*R*2.2),Math.round(yc)]);
-        pts.push([Math.round(ex),Math.round(yc)]);
+        pts.push([Math.round(lx+dir*R*1.8),yb]);
+        pts.push([Math.round(lx+dir*R*3),yb]);
+        pts.push([Math.round(ex),yb]);
         return smoothPath(pts);
     }
     function wavyPath(lane){
@@ -3183,7 +3188,7 @@ load();
         var X = function(t){ return Math.round(sx + (ex-sx)*t); };
         var Y = function(y){ return Math.round(clamp(y, lo, hi)); };
         var s1 = Math.random()<0.5 ? 1 : -1;
-        if (Math.random() < 0.22) { var lp = loopPath(sx,ex,yc,lo,hi,ltr); if (lp) return lp; }
+        if (Math.random() < 0.22) { var lp = loopPath(sx,ex,yc,laneH,ltr); if (lp) return lp; }
         if (Math.random() < 0.5) {
             return 'M '+X(0)+' '+Y(yc-s1*amp*0.5)+' C '+X(0.3)+' '+Y(yc+s1*amp)+' '+X(0.7)+' '+Y(yc+s1*amp)+' '+X(1)+' '+Y(yc-s1*amp*0.5);
         }
