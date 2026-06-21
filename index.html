@@ -3166,7 +3166,7 @@ load();
         + '</svg>';
     var layer = document.getElementById('turtle-layer');
     if (!layer) return;
-    var COUNT = 3, SIZE = 1;
+    var COUNT = 3, SIZE = (window.innerWidth < 600 ? 0.6 : 1);
     function rr(a,b){ return a+Math.random()*(b-a); }
     function smoothPath(pts){
         var d='M '+pts[0][0]+' '+pts[0][1];
