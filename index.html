@@ -24,24 +24,8 @@
             0%, 100% { background-position: 0% 60%; }
             50%       { background-position: 100% 40%; }
         }
-        @keyframes shimmerA {
-            0%, 100% { opacity: .55; transform: translate(0px,   0px) scale(1);    }
-            33%       { opacity: .85; transform: translate(45px, -35px) scale(1.08); }
-            66%       { opacity: .40; transform: translate(-25px, 22px) scale(.95); }
-        }
-        @keyframes shimmerB {
-            0%, 100% { opacity: .45; transform: translate(0px,   0px) scale(1);    }
-            40%       { opacity: .70; transform: translate(-40px, 30px) scale(1.06); }
-            75%       { opacity: .30; transform: translate(28px, -18px) scale(.97); }
-        }
         @keyframes water-ripple {
             to { transform: scale(4); opacity: 0; }
-        }
-        @keyframes shimmerC {
-            0%,100% { opacity:.75; transform:translate(0,0) scaleX(1); }
-            20%      { opacity:.95; transform:translate(30px,-20px) scaleX(1.05); }
-            45%      { opacity:.55; transform:translate(-18px,35px) scaleX(.97); }
-            70%      { opacity:.88; transform:translate(22px,-12px) scaleX(1.03); }
         }
 
         body {
@@ -55,53 +39,7 @@
             overscroll-behavior-x: none; /* verhindert horizontales Seiten-Scrollen ohne Touch-Events zu blockieren */
         }
 
-        /* Lichtreflexe – Ebene 1 */
-        body::before {
-            content: '';
-            position: fixed; inset: 0;
-            background:
-                radial-gradient(ellipse 44% 34% at 14% 24%, rgba(255,255,255,.82) 0%, transparent 65%),
-                radial-gradient(ellipse 36% 52% at 78% 66%, rgba(255,255,255,.65) 0%, transparent 65%),
-                radial-gradient(ellipse 52% 28% at 54% 8%,  rgba(255,255,255,.60) 0%, transparent 65%),
-                radial-gradient(ellipse 22% 16% at 38% 50%, rgba(255,255,255,.45) 0%, transparent 60%);
-            animation: shimmerA 11s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        /* Lichtreflexe – Ebene 2, versetzt */
-        body::after {
-            content: '';
-            position: fixed; inset: 0;
-            background:
-                radial-gradient(ellipse 32% 48% at 42% 78%, rgba(255,255,255,.62) 0%, transparent 65%),
-                radial-gradient(ellipse 58% 36% at 84% 22%, rgba(255,255,255,.55) 0%, transparent 65%),
-                radial-gradient(ellipse 38% 42% at 18% 88%, rgba(255,255,255,.58) 0%, transparent 65%),
-                radial-gradient(ellipse 20% 14% at 62% 42%, rgba(255,255,255,.42) 0%, transparent 58%);
-            animation: shimmerB 14s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        /* Lichtreflexe – Ebene 3: scharfe Spiegelreflexe */
-        .water-shimmer {
-            position: fixed; inset: 0;
-            pointer-events: none;
-            z-index: 0;
-            background:
-                radial-gradient(ellipse 10% 6%  at 22% 35%, rgba(255,255,255,.92) 0%, rgba(255,255,255,0) 100%),
-                radial-gradient(ellipse 7%  11% at 72% 20%, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 100%),
-                radial-gradient(ellipse 9%  5%  at 48% 68%, rgba(255,255,255,.78) 0%, rgba(255,255,255,0) 100%),
-                radial-gradient(ellipse 5%  9%  at 88% 52%, rgba(255,255,255,.72) 0%, rgba(255,255,255,0) 100%),
-                radial-gradient(ellipse 11% 5%  at 8%  78%, rgba(255,255,255,.68) 0%, rgba(255,255,255,0) 100%),
-                radial-gradient(ellipse 6%  8%  at 58% 15%, rgba(255,255,255,.75) 0%, rgba(255,255,255,0) 100%),
-                linear-gradient(125deg, transparent 25%, rgba(255,255,255,.08) 48%, transparent 72%);
-            animation: shimmerC 8s ease-in-out infinite;
-            mix-blend-mode: screen;
-        }
-
         /* ── Wasser-Kaustik (Lichtnetz) ── */
-        body::before, body::after, .water-shimmer { display:none !important; }
         .caustic { position:fixed; inset:-35%; pointer-events:none; z-index:0; mix-blend-mode:screen; will-change:transform; }
         .caustic svg { width:100%; height:100%; display:block; }
         .caustic-1 { opacity:.62; animation:cdrift1 26s ease-in-out infinite; }
@@ -1185,7 +1123,6 @@
 </div>
 <div class="caustic caustic-1" aria-hidden="true"><svg viewBox="0 0 700 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><filter id="cf1" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.028 0.032" numOctaves="2" seed="6" stitchTiles="stitch" result="t"/><feColorMatrix in="t" type="luminanceToAlpha" result="l"/><feComponentTransfer in="l" result="m"><feFuncA type="table" tableValues="0 0 0 0.45 1 0.45 0 0 0"/></feComponentTransfer><feFlood flood-color="#e6ffff" result="w"/><feComposite in="w" in2="m" operator="in"/></filter><rect width="700" height="700" filter="url(#cf1)"/></svg></div>
 <div class="caustic caustic-2" aria-hidden="true"><svg viewBox="0 0 700 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><filter id="cf2" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.036 0.030" numOctaves="2" seed="23" stitchTiles="stitch" result="t"/><feColorMatrix in="t" type="luminanceToAlpha" result="l"/><feComponentTransfer in="l" result="m"><feFuncA type="table" tableValues="0 0 0 0.45 1 0.45 0 0 0"/></feComponentTransfer><feFlood flood-color="#d8fbff" result="w"/><feComposite in="w" in2="m" operator="in"/></filter><rect width="700" height="700" filter="url(#cf2)"/></svg></div>
-<div class="water-shimmer" aria-hidden="true"></div>
 <div class="turtle-layer" id="turtle-layer" aria-hidden="true"></div>
 
 <header class="header">
@@ -1422,7 +1359,6 @@ const WOCHENTAGE_KURZ = ['Mo','Di','Mi','Do','Fr','Sa','So'];
 const HEUTE = (new Date().getDay() + 6) % 7;   // 0=Mo .. 6=So
 
 const trainerMode = true;   // lokal: immer voller Zugriff
-const editorMode  = false;
 
 // Farbpalette für Kurskarten — Zuweisung nach Reihenfolge in state.kurse
 const KURS_FARBEN = [
@@ -1566,10 +1502,6 @@ function save() {
 // ── Utils ─────────────────────────────────────────────────────────
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-function heute() {
-    const d = new Date();
-    return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear();
-}
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function getStufe(id) { return state.badges.find(b => b.id === id); }
 function getKurs(id) { return state.kurse.find(k => k.id === id); }
@@ -1993,7 +1925,7 @@ function logbookInnerHTML(kind) {
             return `<div class="lb-task ${done ? 'lb-done' : ''}" id="lbtask-${anf.id}" onclick="event.stopPropagation()">
                 <span class="lb-task-text" onclick="toggleAufgabe('${kind.id}','${stufe.id}','${anf.id}',${!done})">${esc(anf.text)}${datumEl}</span>
                 <div class="lb-sticker" id="sticker-${anf.id}">${stickerDropsHTML(kind.id, stufe.id, anf.id, sticker)}</div>
-                <input class="lb-note" type="text" value="${esc(note)}" placeholder="Notiz…" ${(trainerMode || editorMode) ? '' : 'readonly'} onclick="event.stopPropagation()" onblur="saveNotiz('${kind.id}','${stufe.id}','${anf.id}',this.value)">
+                <input class="lb-note" type="text" value="${esc(note)}" placeholder="Notiz…" onclick="event.stopPropagation()" onblur="saveNotiz('${kind.id}','${stufe.id}','${anf.id}',this.value)">
                 <input class="lb-cb" type="checkbox" ${done ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleAufgabe('${kind.id}','${stufe.id}','${anf.id}',this.checked)">
             </div>`;
         });
@@ -2004,7 +1936,7 @@ function logbookInnerHTML(kind) {
     const abzDatum = ((kind.progress || {})[stufe.id] || {})['_abzeichen_datum'] || '';
     const stufeP = getStufenProgress(kind, stufe.id);
     const stufeKomplett = stufeP.total > 0 && stufeP.done === stufeP.total;
-    return `<textarea class="lb-anmerkung" ${(trainerMode || editorMode) ? '' : 'readonly'} placeholder="Individuelle Anmerkungen zum Kind…" onclick="event.stopPropagation()" onblur="saveKindAnmerkung('${kind.id}',this.value)">${esc(anmerkung)}</textarea>
+    return `<textarea class="lb-anmerkung" placeholder="Individuelle Anmerkungen zum Kind…" onclick="event.stopPropagation()" onblur="saveKindAnmerkung('${kind.id}',this.value)">${esc(anmerkung)}</textarea>
         <div class="lb-page-title"><span class="kind-sum-dot" style="width:13px;height:13px;background:${stufe.farbe}"></span>${esc(stufe.name)}<span class="lb-page-num">Seite ${seite} von ${state.badges.length}</span></div>
         ${stufeKomplett ? `<div class="lb-abz-datum-row">Abzeichen erworben: ${abzDatum
             ? `<span class="lb-abz-datum-val" id="abz-${kind.id}-${stufe.id}" onclick="event.stopPropagation();showAbzDatumInput('${kind.id}','${stufe.id}','abz-${kind.id}-${stufe.id}')">${abzDatum}</span>`
