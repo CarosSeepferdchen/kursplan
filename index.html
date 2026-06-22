@@ -288,9 +288,6 @@
             margin-bottom: 1rem;
             overflow: hidden;
             border-left: 6px solid #f97316;
-            /* Nicht sichtbare Karten beim Scrollen überspringen → flüssige lange Listen */
-            content-visibility: auto;
-            contain-intrinsic-size: 0 500px;
         }
         .kurs-card.ohne-kurs { border-left-color: #cbd5e1; }
         .kurs-card-head {
@@ -1041,10 +1038,12 @@
         @keyframes headbob { 0%,100%{transform:rotate(-4deg);} 50%{transform:rotate(4deg);} }
         .turtle-layer { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; color:rgb(11,46,82); --top:0.35; }
         .turtle { position:absolute; top:0; left:0; offset-rotate:auto; will-change:offset-distance; }
-        /* Beim Scrollen Hintergrund-Animationen kurz anhalten → flüssigeres Scrollen (v. a. iPhone).
-           !important, weil die Schildkröten ihre Animation per Inline-Style (JS) setzen. */
+        /* Beim Scrollen den animierten Wasser-Hintergrund (Kaustik-Lichtnetz + Schildkröten) kurz
+           ausblenden — sonst muss Safari auf dem iPhone diese teure, fixierte mix-blend-Ebene bei
+           jedem Scroll-Bild neu zeichnen und hat keine Leistung mehr für die Kurskarten (→ leere
+           weiße Kästen). Kommt 180 ms nach dem Scrollen automatisch zurück. */
         body.is-scrolling .caustic,
-        body.is-scrolling .turtle { animation-play-state: paused !important; }
+        body.is-scrolling .turtle-layer { visibility: hidden; }
         .turtle svg { width:100%; height:100%; overflow:visible; display:block; opacity:var(--top,0.35); }
         .t-front-up { transform-box:view-box; transform-origin:126px 72px; animation:flapFU 1.5s ease-in-out infinite; }
         .t-front-lo { transform-box:view-box; transform-origin:126px 108px; animation:flapFL 1.5s ease-in-out infinite; }
