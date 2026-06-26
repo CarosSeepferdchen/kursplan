@@ -39,6 +39,11 @@
             overscroll-behavior-x: none; /* verhindert horizontales Seiten-Scrollen ohne Touch-Events zu blockieren */
         }
 
+        /* Wasser-Lichtnetz als STATISCHES Bild — KEIN mix-blend-mode / kein Live-SVG-Filter,
+           damit das Scrollen auf dem iPhone fluessig bleibt (Blend war die iOS-Scroll-Bremse). */
+        .caustic { position:fixed; inset:0; pointer-events:none; z-index:0; opacity:0.62;
+            background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc2MDAnIGhlaWdodD0nNjAwJz48ZmlsdGVyIGlkPSdjJyB4PScwJyB5PScwJyB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC4wMjggMC4wMzInIG51bU9jdGF2ZXM9JzInIHNlZWQ9JzYnIHN0aXRjaFRpbGVzPSdzdGl0Y2gnIHJlc3VsdD0ndCcvPjxmZUNvbG9yTWF0cml4IGluPSd0JyB0eXBlPSdsdW1pbmFuY2VUb0FscGhhJyByZXN1bHQ9J2wnLz48ZmVDb21wb25lbnRUcmFuc2ZlciBpbj0nbCcgcmVzdWx0PSdtJz48ZmVGdW5jQSB0eXBlPSd0YWJsZScgdGFibGVWYWx1ZXM9JzAgMCAwIDAuNSAxIDAuNSAwIDAgMCcvPjwvZmVDb21wb25lbnRUcmFuc2Zlcj48ZmVGbG9vZCBmbG9vZC1jb2xvcj0nI2YwZmZmZicgcmVzdWx0PSd3Jy8+PGZlQ29tcG9zaXRlIGluPSd3JyBpbjI9J20nIG9wZXJhdG9yPSdpbicvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSc2MDAnIGhlaWdodD0nNjAwJyBmaWx0ZXI9J3VybCgjYyknLz48L3N2Zz4K");
+            background-repeat:repeat; background-size:460px 460px; }
         .header {
             position: relative; z-index: 10;
             background: linear-gradient(135deg, #c2410c 0%, #f97316 100%);
@@ -1099,6 +1104,7 @@
     </div>
 </div>
 
+<div class="caustic" aria-hidden="true"></div>
 <header class="header">
     <div class="header-title"><img src="icon-192.png" style="height:1.9rem;width:1.9rem;border-radius:50%;flex-shrink:0;object-fit:cover"> Caros Seepferdchen</div>
     <div class="header-actions">
