@@ -2895,6 +2895,12 @@ function schedulePush() {
     cloudTimer = setTimeout(pushToCloud, 1200);
 }
 
+// Eine ausstehende (verzögerte) Cloud-Speicherung SOFORT abschließen, BEVOR der Bereich gewechselt
+// oder abgemeldet wird — sonst landet der verspätete Push im falschen Konto oder geht verloren.
+async function flushPush() {
+    if (cloudTimer) { clearTimeout(cloudTimer); cloudTimer = null; await pushToCloud(); }
+}
+
 // Ein Kurs gilt als „geteilt", wenn er mit mindestens 2 Trainern getaggt ist
 function isSharedKurs(k) { return ((k.trainers || []).length) >= 2; }
 
@@ -3012,6 +3018,7 @@ function openTrainerSwitch() {
 async function switchToTrainer(id) {
     closeModal('modal-trainer');
     if (!id || id === viewingId) return;
+    await flushPush();                       // aktuellen Bereich erst fertig in die Cloud speichern
     const prev = viewingId;
     viewingId = id;
     expandedKindId = null;
@@ -3042,6 +3049,7 @@ async function saveMyName(val) {
 
 async function doLogout() {
     if (!confirm('Abmelden? Deine Daten bleiben in der Cloud gespeichert.')) return;
+    await flushPush();                       // letzte Änderung noch sichern, bevor wir abmelden
     try { await supa.auth.signOut(); } catch(e) {}
     // lokalen Zwischenspeicher leeren, damit das nächste Konto nichts übernimmt
     localStorage.removeItem(STORAGE_KEY);
