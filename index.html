@@ -40,12 +40,12 @@
         }
 
         /* ── Wasser-Kaustik (Lichtnetz) ── */
-        .caustic { position:fixed; inset:-35%; pointer-events:none; z-index:0; mix-blend-mode:screen; will-change:transform; }
+        /* Wasser-Lichtnetz: STATISCH („als Bild", nicht animiert) → Safari muss es nicht bei jedem
+           Scroll-Bild neu berechnen = flüssiges Scrollen. */
+        .caustic { position:fixed; inset:-35%; pointer-events:none; z-index:0; mix-blend-mode:screen; }
         .caustic svg { width:100%; height:100%; display:block; }
-        .caustic-1 { opacity:.62; animation:cdrift1 26s ease-in-out infinite; }
-        .caustic-2 { opacity:.40; animation:cdrift2 34s ease-in-out infinite; }
-        @keyframes cdrift1 { 0%,100%{transform:translate(0,0) scale(1.0);} 50%{transform:translate(4%,3%) scale(1.14);} }
-        @keyframes cdrift2 { 0%,100%{transform:translate(0,0) scale(1.12) rotate(0deg);} 50%{transform:translate(-5%,-3%) scale(1.0) rotate(2deg);} }
+        .caustic-1 { opacity:.62; }
+        .caustic-2 { opacity:.40; }
         .header {
             position: relative; z-index: 10;
             background: linear-gradient(135deg, #c2410c 0%, #f97316 100%);
@@ -1038,11 +1038,9 @@
         @keyframes headbob { 0%,100%{transform:rotate(-4deg);} 50%{transform:rotate(4deg);} }
         .turtle-layer { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; color:rgb(11,46,82); --top:0.35; }
         .turtle { position:absolute; top:0; left:0; offset-rotate:auto; will-change:offset-distance; }
-        /* Beim Scrollen den animierten Wasser-Hintergrund (Kaustik-Lichtnetz + Schildkröten) kurz
-           ausblenden — sonst muss Safari auf dem iPhone diese teure, fixierte mix-blend-Ebene bei
-           jedem Scroll-Bild neu zeichnen und hat keine Leistung mehr für die Kurskarten (→ leere
-           weiße Kästen). Kommt 180 ms nach dem Scrollen automatisch zurück. */
-        body.is-scrolling .caustic,
+        /* Die (animierten) Schildkröten beim Scrollen kurz ausblenden, damit Safari die Kurskarten
+           flüssig zeichnen kann. Das Wasser-Lichtnetz ist jetzt statisch und bleibt sichtbar.
+           Kommt 180 ms nach dem Scrollen automatisch zurück. */
         body.is-scrolling .turtle-layer { visibility: hidden; }
         .turtle svg { width:100%; height:100%; overflow:visible; display:block; opacity:var(--top,0.35); }
         .t-front-up { transform-box:view-box; transform-origin:126px 72px; animation:flapFU 1.5s ease-in-out infinite; }
@@ -3113,7 +3111,7 @@ load();
         + '</svg>';
     var layer = document.getElementById('turtle-layer');
     if (!layer) return;
-    var COUNT = 3, SIZE = (window.innerWidth < 600 ? 0.6 : 1);
+    var COUNT = (window.innerWidth < 600 ? 1 : 3), SIZE = (window.innerWidth < 600 ? 0.6 : 1);
     function rr(a,b){ return a+Math.random()*(b-a); }
     function smoothPath(pts){
         var d='M '+pts[0][0]+' '+pts[0][1];
