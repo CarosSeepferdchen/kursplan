@@ -842,20 +842,15 @@
         .abz-stat-count { flex: 0 0 auto; min-width: 1.5rem; text-align: right; font-size: 0.9rem; font-weight: 800; color: #0f172a; }
         .abz-stat-empty { font-size: 0.92rem; color: #64748b; text-align: center; padding: 1.5rem 0; }
         /* ── Niveau & Förderbedarf ── */
-        .niveau-kurs { margin-bottom: 1.3rem; }
-        .niveau-kurs-head { display: flex; flex-direction: column; gap: 0.05rem; padding: 0.55rem 0.8rem; border-radius: 10px; border-left: 5px solid #cbd5e1; margin-bottom: 0.6rem; }
-        .niveau-kurs-name { font-weight: 800; font-size: 0.98rem; }
-        .niveau-kurs-meta { font-size: 0.74rem; color: #64748b; font-weight: 600; }
-        .niveau-sub { font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.03em; margin: 0.7rem 0 0.3rem; }
-        .niveau-alldone { font-size: 0.84rem; color: #16a34a; font-weight: 600; padding: 0.2rem 0 0.4rem; }
-        .niveau-kind { padding: 0.5rem 0.15rem; }
-        .niveau-kind + .niveau-kind { border-top: 1px solid #eef2f7; }
-        .niveau-kind-top { display: flex; align-items: center; gap: 0.5rem; }
-        .niveau-kind-name { font-weight: 700; font-size: 0.9rem; color: #1e293b; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .niveau-kind-stufe { font-size: 0.76rem; font-weight: 700; color: #64748b; flex-shrink: 0; }
-        .niveau-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.35rem; padding-left: 1.1rem; }
+        /* ── Niveau-Modus: Förderbedarf direkt in den Kurskarten ── */
+        .kurse-stat-btn.active { background: #2563eb; border-color: #2563eb; color: white; }
+        .kurs-bedarf { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; padding: 0.55rem 0.65rem 0.4rem; }
+        .kurs-bedarf-label { font-size: 0.74rem; font-weight: 800; color: #475569; }
+        .kurs-bedarf-chip { font-size: 0.74rem; font-weight: 700; border: 1px solid; border-radius: 99px; padding: 0.12rem 0.55rem; white-space: nowrap; }
+        .kurs-bedarf-done { font-size: 0.82rem; font-weight: 600; color: #16a34a; }
+        .niveau-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0 0 0.5rem; padding: 0 0.65rem 0 1.7rem; }
         .niveau-chip { font-size: 0.72rem; font-weight: 700; border: 1px solid; border-radius: 99px; padding: 0.1rem 0.5rem; white-space: nowrap; }
-        .niveau-fertig { font-size: 0.74rem; font-weight: 700; color: #16a34a; padding-left: 1.1rem; }
+        .niveau-fertig { font-size: 0.74rem; font-weight: 700; color: #16a34a; margin: 0 0 0.5rem; padding-left: 1.7rem; }
         .anw-share-toolbar { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.55rem; }
         .anw-share-count { font-size: 0.8rem; color: #64748b; font-weight: 700; margin-left: auto; }
         .anw-chip-btn {
@@ -1166,7 +1161,7 @@
             <div class="chips-row" id="day-chips"></div>
             <div class="daybar-actions">
                 <button class="kurse-stat-btn" onclick="oeffneAbzeichenStatistik()">📊 Abzeichen</button>
-                <button class="kurse-stat-btn" onclick="oeffneNiveauUebersicht()">📈 Niveau</button>
+                <button class="kurse-stat-btn" id="niveau-btn" onclick="toggleNiveauModus()">📈 Niveau</button>
                 <button class="anw-share-btn" onclick="oeffneKursTeilen()">📄 Teilen</button>
             </div>
         </div>
@@ -1313,17 +1308,6 @@
             <button class="modal-close" onclick="closeModal('modal-abz-stat')">×</button>
         </div>
         <div id="abz-stat-body"></div>
-    </div>
-</div>
-
-<!-- Niveau & Förderbedarf -->
-<div class="modal-bg" id="modal-niveau">
-    <div class="modal-box">
-        <div class="modal-header">
-            <h2 class="modal-title" id="niveau-title">Niveau & Förderbedarf</h2>
-            <button class="modal-close" onclick="closeModal('modal-niveau')">×</button>
-        </div>
-        <div id="niveau-body"></div>
     </div>
 </div>
 
@@ -1790,6 +1774,8 @@ function renderDayChips() {
 
 function renderKurse() {
     renderDayChips();
+    const nb = document.getElementById('niveau-btn');
+    if (nb) nb.classList.toggle('active', niveauModus);
     const wrap = document.getElementById('kurse-list');
     const q = (document.getElementById('search-input').value || '').toLowerCase().trim();
 
@@ -1843,10 +1829,12 @@ function emptyKurseHTML() {
 }
 
 function kursCardHTML(kurs) {
-    const kinder = kinderImKurs(kurs.id);
+    let kinder = kinderImKurs(kurs.id);
+    if (niveauModus) kinder = kinder.slice().sort((a, b) => kindNiveauScore(a) - kindNiveauScore(b) || a.name.localeCompare(b.name, 'de'));
     const cf = kursFarbe(kurs.id);
     let zeit = '';
     if (kurs.von) zeit = `<span class="kurs-time-badge" style="background:${cf.hell};color:${cf.farbe}">${kurs.von}${kurs.bis ? '–' + kurs.bis : ''}</span>`;
+    const bedarf = (niveauModus && kinder.length) ? foerderbedarfHTML(kinder) : '';
     const kinderHTML = kinder.length
         ? kinder.map(k => kindBlockHTML(k)).join('')
         : `<div class="kurs-empty">${trainerMode ? 'Noch keine Kinder · „＋ Kind" zum Hinzufügen' : 'Noch keine Kinder eingetragen'}</div>`;
@@ -1862,7 +1850,7 @@ function kursCardHTML(kurs) {
                 <button class="icon-btn trainer-only" onclick="deleteKurs('${kurs.id}')" title="Kurs löschen">🗑</button>
             </div>
         </div>
-        <div class="kurs-kinder">${kinderHTML}</div>
+        <div class="kurs-kinder">${bedarf}${kinderHTML}</div>
     </div>`;
 }
 
@@ -1885,6 +1873,7 @@ function kindBlockHTML(kind, showKurs) {
             <div class="kind-summary" id="kindsum-${kind.id}">${kindSummaryInner(kind)}</div>
             <button class="kind-row-x" onclick="event.stopPropagation();deleteKind('${kind.id}')" title="Kind löschen">×</button>
         </div>
+        ${niveauModus ? niveauKindChipsHTML(kind) : ''}
         ${expanded ? `<div class="logbook"><div id="logbook-panel">${logbookInnerHTML(kind)}</div></div>` : ''}
     </div>`;
 }
@@ -2783,90 +2772,33 @@ function offeneKategorien(kind) {
     return [...set];
 }
 
-// Förderbedarf-Balken + „nach Niveau"-Liste für EINE Gruppe Kinder (= ein Kurs)
-function niveauBlockHTML(kinder) {
-    // Förderbedarf: pro Kategorie die Kinder mit offener Aufgabe sammeln
-    const katKinder = {}; KATEGORIEN.forEach(k => katKinder[k.id] = []);
-    kinder.forEach(kind => offeneKategorien(kind).forEach(id => { if (katKinder[id]) katKinder[id].push(kind); }));
-    const aktiveKats = KATEGORIEN.filter(k => katKinder[k.id].length)
-        .sort((a, b) => katKinder[b.id].length - katKinder[a.id].length);
-    const maxC = Math.max(1, ...aktiveKats.map(k => katKinder[k.id].length));
-
-    let html = '';
-    if (!aktiveKats.length) {
-        html += `<div class="niveau-alldone">🎉 Alle durch — kein offener Förderbedarf.</div>`;
-    } else {
-        aktiveKats.forEach(k => {
-            const arr = katKinder[k.id].slice().sort((a, c) => a.name.localeCompare(c.name, 'de'));
-            const pct = Math.max(Math.round(arr.length / maxC * 100), 6);
-            html += `<div class="abz-stat-item">
-                <div class="abz-stat-row" onclick="toggleAbzNamen(this)">
-                    <span class="abz-stat-name" title="${esc(k.name)}"><span class="abz-stat-dot" style="background:${k.farbe}"></span>${k.icon} ${esc(k.name)}</span>
-                    <div class="abz-stat-track"><div class="abz-stat-fill" style="width:${pct}%;background:${k.farbe}"></div></div>
-                    <span class="abz-stat-count">${arr.length}</span>
-                    <span class="abz-stat-caret">▸</span>
-                </div>
-                <div class="abz-stat-namen">${arr.map(kd => `<span class="abz-stat-kind">${esc(kd.name)}</span>`).join('')}</div>
-            </div>`;
-        });
-    }
-
-    // Kinder nach Niveau — schwächste zuerst
-    const sortiert = kinder.slice().sort((a, b) => kindNiveauScore(a) - kindNiveauScore(b) || a.name.localeCompare(b.name, 'de'));
-    html += `<div class="niveau-sub">Kinder — schwächste zuerst</div>`;
-    html += sortiert.map(kind => {
-        const fertig = alleStufenFertig(kind);
-        const st = aktuelleStufe(kind);
-        const p = getStufenProgress(kind, st.id);
-        const offen = offeneKategorien(kind);
-        const chips = fertig
-            ? `<span class="niveau-fertig">✓ alles geschafft</span>`
-            : `<div class="niveau-chips">${offen.map(id => { const k = KAT_BY_ID[id]; return k ? `<span class="niveau-chip" style="background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66">${k.icon} ${esc(k.name)}</span>` : ''; }).join('')}</div>`;
-        return `<div class="niveau-kind">
-            <div class="niveau-kind-top">
-                <span class="kind-sum-dot" style="background:${st.farbe}"></span>
-                <span class="niveau-kind-name">${esc(kind.name)}</span>
-                <span class="niveau-kind-stufe">${fertig ? 'Gold ✓' : esc(st.name) + ' ' + p.done + '/' + p.total}</span>
-            </div>
-            ${chips}
-        </div>`;
-    }).join('');
-    return html;
+// ── Niveau-Modus: Förderbedarf direkt in den Kurskarten ───────────
+let niveauModus = false;
+function toggleNiveauModus() {
+    niveauModus = !niveauModus;
+    renderKurse();
 }
 
-function oeffneNiveauUebersicht() {
-    const tag = currentDay;
-    let kurse = [];
-    if (tag === 'alle') { WOCHENTAGE.forEach((_, i) => kurse.push(...kurseAmTag(i))); }
-    else if (tag === 'favoriten') { kurse = _kurseNachZeit().filter(k => k.favorit); }
-    else { kurse = kurseAmTag(tag); }
+// Kompakte Förderbedarf-Zeile für einen Kurs (Themen + Anzahl Kinder mit offener Aufgabe)
+function foerderbedarfHTML(kinder) {
+    const katKinder = {}; KATEGORIEN.forEach(k => katKinder[k.id] = []);
+    kinder.forEach(kind => offeneKategorien(kind).forEach(id => { if (katKinder[id]) katKinder[id].push(kind); }));
+    const aktiv = KATEGORIEN.filter(k => katKinder[k.id].length)
+        .sort((a, b) => katKinder[b.id].length - katKinder[a.id].length);
+    if (!aktiv.length) return `<div class="kurs-bedarf"><span class="kurs-bedarf-done">🎉 Alle durch — kein offener Förderbedarf</span></div>`;
+    const chips = aktiv.map(k => {
+        const n = katKinder[k.id].length;
+        return `<span class="kurs-bedarf-chip" style="background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66" title="${esc(k.name)}: ${n} Kind${n !== 1 ? 'er' : ''}">${k.icon} ${esc(k.name)} <b>${n}</b></span>`;
+    }).join('');
+    return `<div class="kurs-bedarf"><span class="kurs-bedarf-label">Noch offen:</span>${chips}</div>`;
+}
 
-    const tagName = tag === 'alle' ? 'Alle Tage' : (tag === 'favoriten' ? '★ Favoriten' : WOCHENTAGE[tag]);
-    document.getElementById('niveau-title').textContent = 'Niveau & Förderbedarf — ' + tagName;
-    const body = document.getElementById('niveau-body');
-
-    if (!kurse.length) {
-        body.innerHTML = `<div class="abz-stat-empty">Keine Kurse ${tag === 'alle' ? 'vorhanden' : 'am ' + tagName}.</div>`;
-        openModal('modal-niveau');
-        return;
-    }
-
-    // Pro Kurs ein eigener Block (eigener Förderbedarf + eigene „schwächste zuerst"-Liste)
-    let html = `<div class="abz-stat-sub">Pro Kurs: woran fehlt es noch? + Kinder nach Niveau (schwächste zuerst). Balken antippen zeigt die Namen.</div>`;
-    kurse.forEach(kurs => {
-        const kinder = kinderImKurs(kurs.id);
-        const cf = kursFarbe(kurs.id);
-        const zeit = kurs.von ? ` · ${kurs.von}${kurs.bis ? '–' + kurs.bis : ''}` : '';
-        html += `<div class="niveau-kurs">
-            <div class="niveau-kurs-head" style="background:${cf.hell};border-left-color:${cf.farbe}">
-                <span class="niveau-kurs-name" style="color:${cf.farbe}">${esc(kurs.name)}</span>
-                <span class="niveau-kurs-meta">${WOCHENTAGE_KURZ[kurs.wochentag]}${zeit} · ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</span>
-            </div>
-            ${kinder.length ? niveauBlockHTML(kinder) : `<div class="niveau-alldone" style="color:#94a3b8">Noch keine Kinder in diesem Kurs.</div>`}
-        </div>`;
-    });
-    body.innerHTML = html;
-    openModal('modal-niveau');
+// Offene-Themen-Chips für ein einzelnes Kind (im Niveau-Modus unter der Kind-Zeile)
+function niveauKindChipsHTML(kind) {
+    if (alleStufenFertig(kind)) return `<div class="niveau-fertig">✓ alles geschafft</div>`;
+    const offen = offeneKategorien(kind);
+    if (!offen.length) return '';
+    return `<div class="niveau-chips">${offen.map(id => { const k = KAT_BY_ID[id]; return k ? `<span class="niveau-chip" style="background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66">${k.icon} ${esc(k.name)}</span>` : ''; }).join('')}</div>`;
 }
 
 function oeffneKursTeilen() {
