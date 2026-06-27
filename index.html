@@ -841,6 +841,16 @@
         .abz-stat-fill { height: 100%; border-radius: 7px; min-width: 0; transition: width 0.35s ease; }
         .abz-stat-count { flex: 0 0 auto; min-width: 1.5rem; text-align: right; font-size: 0.9rem; font-weight: 800; color: #0f172a; }
         .abz-stat-empty { font-size: 0.92rem; color: #64748b; text-align: center; padding: 1.5rem 0; }
+        /* ── Niveau & Förderbedarf ── */
+        .niveau-list-head { font-size: 0.78rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin: 1.1rem 0 0.5rem; padding-top: 0.8rem; border-top: 1px solid #e2e8f0; }
+        .niveau-kind { padding: 0.5rem 0.15rem; }
+        .niveau-kind + .niveau-kind { border-top: 1px solid #eef2f7; }
+        .niveau-kind-top { display: flex; align-items: center; gap: 0.5rem; }
+        .niveau-kind-name { font-weight: 700; font-size: 0.9rem; color: #1e293b; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .niveau-kind-stufe { font-size: 0.76rem; font-weight: 700; color: #64748b; flex-shrink: 0; }
+        .niveau-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.35rem; padding-left: 1.1rem; }
+        .niveau-chip { font-size: 0.72rem; font-weight: 700; border: 1px solid; border-radius: 99px; padding: 0.1rem 0.5rem; white-space: nowrap; }
+        .niveau-fertig { font-size: 0.74rem; font-weight: 700; color: #16a34a; padding-left: 1.1rem; }
         .anw-share-toolbar { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.55rem; }
         .anw-share-count { font-size: 0.8rem; color: #64748b; font-weight: 700; margin-left: auto; }
         .anw-chip-btn {
@@ -1151,6 +1161,7 @@
             <div class="chips-row" id="day-chips"></div>
             <div class="daybar-actions">
                 <button class="kurse-stat-btn" onclick="oeffneAbzeichenStatistik()">📊 Abzeichen</button>
+                <button class="kurse-stat-btn" onclick="oeffneNiveauUebersicht()">📈 Niveau</button>
                 <button class="anw-share-btn" onclick="oeffneKursTeilen()">📄 Teilen</button>
             </div>
         </div>
@@ -1297,6 +1308,17 @@
             <button class="modal-close" onclick="closeModal('modal-abz-stat')">×</button>
         </div>
         <div id="abz-stat-body"></div>
+    </div>
+</div>
+
+<!-- Niveau & Förderbedarf -->
+<div class="modal-bg" id="modal-niveau">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 class="modal-title" id="niveau-title">Niveau & Förderbedarf</h2>
+            <button class="modal-close" onclick="closeModal('modal-niveau')">×</button>
+        </div>
+        <div id="niveau-body"></div>
     </div>
 </div>
 
@@ -2710,6 +2732,120 @@ function oeffneAbzeichenStatistik() {
 function toggleAbzNamen(rowEl) {
     const item = rowEl.closest('.abz-stat-item');
     if (item) item.classList.toggle('open');
+}
+
+// ── Niveau & Förderbedarf ──────────────────────────────────────────
+// Kategorien (Themen), in die die Abzeichen-Aufgaben fallen — so zählt z.B. die 25m (Seepferdchen)
+// und die 200m (Bronze) beide als „Ausdauer".
+const KATEGORIEN = [
+    { id: 'wasser',   icon: '💧', name: 'Wassergewöhnung',   farbe: '#0ea5e9' },
+    { id: 'ausdauer', icon: '🏊', name: 'Ausdauer/Strecke',  farbe: '#2563eb' },
+    { id: 'technik',  icon: '🦵', name: 'Schwimmtechnik',    farbe: '#7c3aed' },
+    { id: 'springen', icon: '🤸', name: 'Springen',          farbe: '#f59e0b' },
+    { id: 'tauchen',  icon: '🤿', name: 'Tauchen',           farbe: '#0891b2' },
+    { id: 'rettung',  icon: '🆘', name: 'Rettung/Sicherheit', farbe: '#dc2626' },
+    { id: 'theorie',  icon: '📋', name: 'Baderegeln/Theorie', farbe: '#64748b' },
+    { id: 'sonstiges',icon: '📌', name: 'Sonstiges',         farbe: '#94a3b8' },
+];
+const KAT_BY_ID = {}; KATEGORIEN.forEach(k => KAT_BY_ID[k.id] = k);
+// Zuordnung der Standard-Aufgaben (per ID) zu Kategorien — Tom kann das später anpassen lassen
+const AUFGABEN_KAT = {
+    fr1:'theorie', fr2:'wasser', fr3:'wasser', fr4:'springen', fr5:'ausdauer', fr6:'tauchen', fr7:'wasser', fr8:'theorie',
+    sp1:'theorie', sp2:'wasser', sp3:'wasser', sp4:'springen', sp5:'tauchen', sp6:'ausdauer', sp7:'technik',
+    se1:'ausdauer', se2:'tauchen', se3:'technik',
+    br1:'springen', br2:'springen', br3:'ausdauer', br4:'tauchen', br5:'theorie',
+    si1:'springen', si2:'ausdauer', si3:'tauchen', si4:'rettung', si5:'theorie',
+    go1:'ausdauer', go2:'technik', go3:'technik', go4:'tauchen', go5:'rettung',
+};
+function aufgabeKat(anfId) { return AUFGABEN_KAT[anfId] || 'sonstiges'; }
+
+// Niveau-Punktzahl: höher = weiter. (für Sortierung)
+function kindNiveauScore(kind) {
+    if (alleStufenFertig(kind)) return state.badges.length + 1;
+    const st = aktuelleStufe(kind);
+    const idx = state.badges.findIndex(b => b.id === st.id);
+    const p = getStufenProgress(kind, st.id);
+    return idx + (p.total ? p.done / p.total : 0);
+}
+
+// Offene Themen-Kategorien eines Kindes (= noch nicht erledigte Aufgaben seiner aktuellen Stufe)
+function offeneKategorien(kind) {
+    if (alleStufenFertig(kind)) return [];
+    const st = aktuelleStufe(kind);
+    const prog = (kind.progress || {})[st.id] || {};
+    const set = new Set();
+    st.anforderungen.forEach(a => { if (!prog[a.id]) set.add(aufgabeKat(a.id)); });
+    return [...set];
+}
+
+function oeffneNiveauUebersicht() {
+    const tag = currentDay;
+    let kurse = [];
+    if (tag === 'alle') { WOCHENTAGE.forEach((_, i) => kurse.push(...kurseAmTag(i))); }
+    else if (tag === 'favoriten') { kurse = _kurseNachZeit().filter(k => k.favorit); }
+    else { kurse = kurseAmTag(tag); }
+    const kinder = [];
+    kurse.forEach(k => kinder.push(...kinderImKurs(k.id)));
+
+    const tagName = tag === 'alle' ? 'Alle Tage' : (tag === 'favoriten' ? '★ Favoriten' : WOCHENTAGE[tag]);
+    document.getElementById('niveau-title').textContent = 'Niveau & Förderbedarf — ' + tagName;
+    const body = document.getElementById('niveau-body');
+
+    if (!kinder.length) {
+        body.innerHTML = `<div class="abz-stat-empty">Keine Kinder ${tag === 'alle' ? 'vorhanden' : 'am ' + tagName}.</div>`;
+        openModal('modal-niveau');
+        return;
+    }
+
+    // 1) Förderbedarf: pro Kategorie die Kinder mit offener Aufgabe sammeln
+    const katKinder = {}; KATEGORIEN.forEach(k => katKinder[k.id] = []);
+    kinder.forEach(kind => offeneKategorien(kind).forEach(id => { if (katKinder[id]) katKinder[id].push(kind); }));
+    const aktiveKats = KATEGORIEN.filter(k => katKinder[k.id].length)
+        .sort((a, b) => katKinder[b.id].length - katKinder[a.id].length);
+    const maxC = Math.max(1, ...aktiveKats.map(k => katKinder[k.id].length));
+
+    let html = `<div class="abz-stat-sub">${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''} · woran fehlt es der Gruppe noch? (zum Aufklappen tippen)</div>`;
+    if (!aktiveKats.length) {
+        html += `<div class="abz-stat-empty" style="padding:0.6rem 0">🎉 Alle Kinder sind durch — kein offener Förderbedarf.</div>`;
+    } else {
+        aktiveKats.forEach(k => {
+            const arr = katKinder[k.id].slice().sort((a, c) => a.name.localeCompare(c.name, 'de'));
+            const pct = Math.max(Math.round(arr.length / maxC * 100), 6);
+            html += `<div class="abz-stat-item">
+                <div class="abz-stat-row" onclick="toggleAbzNamen(this)">
+                    <span class="abz-stat-name" title="${esc(k.name)}"><span class="abz-stat-dot" style="background:${k.farbe}"></span>${k.icon} ${esc(k.name)}</span>
+                    <div class="abz-stat-track"><div class="abz-stat-fill" style="width:${pct}%;background:${k.farbe}"></div></div>
+                    <span class="abz-stat-count">${arr.length}</span>
+                    <span class="abz-stat-caret">▸</span>
+                </div>
+                <div class="abz-stat-namen">${arr.map(kd => `<span class="abz-stat-kind">${esc(kd.name)}</span>`).join('')}</div>
+            </div>`;
+        });
+    }
+
+    // 2) Kinder nach Niveau — schwächste zuerst
+    const sortiert = kinder.slice().sort((a, b) => kindNiveauScore(a) - kindNiveauScore(b) || a.name.localeCompare(b.name, 'de'));
+    html += `<div class="niveau-list-head">Kinder nach Niveau — schwächste zuerst</div>`;
+    html += sortiert.map(kind => {
+        const fertig = alleStufenFertig(kind);
+        const st = aktuelleStufe(kind);
+        const p = getStufenProgress(kind, st.id);
+        const offen = offeneKategorien(kind);
+        const chips = fertig
+            ? `<span class="niveau-fertig">✓ alles geschafft</span>`
+            : `<div class="niveau-chips">${offen.map(id => { const k = KAT_BY_ID[id]; return k ? `<span class="niveau-chip" style="background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66">${k.icon} ${esc(k.name)}</span>` : ''; }).join('')}</div>`;
+        return `<div class="niveau-kind">
+            <div class="niveau-kind-top">
+                <span class="kind-sum-dot" style="background:${st.farbe}"></span>
+                <span class="niveau-kind-name">${esc(kind.name)}</span>
+                <span class="niveau-kind-stufe">${fertig ? 'Gold ✓' : esc(st.name) + ' ' + p.done + '/' + p.total}</span>
+            </div>
+            ${chips}
+        </div>`;
+    }).join('');
+
+    body.innerHTML = html;
+    openModal('modal-niveau');
 }
 
 function oeffneKursTeilen() {
