@@ -842,7 +842,12 @@
         .abz-stat-count { flex: 0 0 auto; min-width: 1.5rem; text-align: right; font-size: 0.9rem; font-weight: 800; color: #0f172a; }
         .abz-stat-empty { font-size: 0.92rem; color: #64748b; text-align: center; padding: 1.5rem 0; }
         /* ── Niveau & Förderbedarf ── */
-        .niveau-list-head { font-size: 0.78rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin: 1.1rem 0 0.5rem; padding-top: 0.8rem; border-top: 1px solid #e2e8f0; }
+        .niveau-kurs { margin-bottom: 1.3rem; }
+        .niveau-kurs-head { display: flex; flex-direction: column; gap: 0.05rem; padding: 0.55rem 0.8rem; border-radius: 10px; border-left: 5px solid #cbd5e1; margin-bottom: 0.6rem; }
+        .niveau-kurs-name { font-weight: 800; font-size: 0.98rem; }
+        .niveau-kurs-meta { font-size: 0.74rem; color: #64748b; font-weight: 600; }
+        .niveau-sub { font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.03em; margin: 0.7rem 0 0.3rem; }
+        .niveau-alldone { font-size: 0.84rem; color: #16a34a; font-weight: 600; padding: 0.2rem 0 0.4rem; }
         .niveau-kind { padding: 0.5rem 0.15rem; }
         .niveau-kind + .niveau-kind { border-top: 1px solid #eef2f7; }
         .niveau-kind-top { display: flex; align-items: center; gap: 0.5rem; }
@@ -2778,35 +2783,18 @@ function offeneKategorien(kind) {
     return [...set];
 }
 
-function oeffneNiveauUebersicht() {
-    const tag = currentDay;
-    let kurse = [];
-    if (tag === 'alle') { WOCHENTAGE.forEach((_, i) => kurse.push(...kurseAmTag(i))); }
-    else if (tag === 'favoriten') { kurse = _kurseNachZeit().filter(k => k.favorit); }
-    else { kurse = kurseAmTag(tag); }
-    const kinder = [];
-    kurse.forEach(k => kinder.push(...kinderImKurs(k.id)));
-
-    const tagName = tag === 'alle' ? 'Alle Tage' : (tag === 'favoriten' ? '★ Favoriten' : WOCHENTAGE[tag]);
-    document.getElementById('niveau-title').textContent = 'Niveau & Förderbedarf — ' + tagName;
-    const body = document.getElementById('niveau-body');
-
-    if (!kinder.length) {
-        body.innerHTML = `<div class="abz-stat-empty">Keine Kinder ${tag === 'alle' ? 'vorhanden' : 'am ' + tagName}.</div>`;
-        openModal('modal-niveau');
-        return;
-    }
-
-    // 1) Förderbedarf: pro Kategorie die Kinder mit offener Aufgabe sammeln
+// Förderbedarf-Balken + „nach Niveau"-Liste für EINE Gruppe Kinder (= ein Kurs)
+function niveauBlockHTML(kinder) {
+    // Förderbedarf: pro Kategorie die Kinder mit offener Aufgabe sammeln
     const katKinder = {}; KATEGORIEN.forEach(k => katKinder[k.id] = []);
     kinder.forEach(kind => offeneKategorien(kind).forEach(id => { if (katKinder[id]) katKinder[id].push(kind); }));
     const aktiveKats = KATEGORIEN.filter(k => katKinder[k.id].length)
         .sort((a, b) => katKinder[b.id].length - katKinder[a.id].length);
     const maxC = Math.max(1, ...aktiveKats.map(k => katKinder[k.id].length));
 
-    let html = `<div class="abz-stat-sub">${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''} · woran fehlt es der Gruppe noch? (zum Aufklappen tippen)</div>`;
+    let html = '';
     if (!aktiveKats.length) {
-        html += `<div class="abz-stat-empty" style="padding:0.6rem 0">🎉 Alle Kinder sind durch — kein offener Förderbedarf.</div>`;
+        html += `<div class="niveau-alldone">🎉 Alle durch — kein offener Förderbedarf.</div>`;
     } else {
         aktiveKats.forEach(k => {
             const arr = katKinder[k.id].slice().sort((a, c) => a.name.localeCompare(c.name, 'de'));
@@ -2823,9 +2811,9 @@ function oeffneNiveauUebersicht() {
         });
     }
 
-    // 2) Kinder nach Niveau — schwächste zuerst
+    // Kinder nach Niveau — schwächste zuerst
     const sortiert = kinder.slice().sort((a, b) => kindNiveauScore(a) - kindNiveauScore(b) || a.name.localeCompare(b.name, 'de'));
-    html += `<div class="niveau-list-head">Kinder nach Niveau — schwächste zuerst</div>`;
+    html += `<div class="niveau-sub">Kinder — schwächste zuerst</div>`;
     html += sortiert.map(kind => {
         const fertig = alleStufenFertig(kind);
         const st = aktuelleStufe(kind);
@@ -2843,7 +2831,40 @@ function oeffneNiveauUebersicht() {
             ${chips}
         </div>`;
     }).join('');
+    return html;
+}
 
+function oeffneNiveauUebersicht() {
+    const tag = currentDay;
+    let kurse = [];
+    if (tag === 'alle') { WOCHENTAGE.forEach((_, i) => kurse.push(...kurseAmTag(i))); }
+    else if (tag === 'favoriten') { kurse = _kurseNachZeit().filter(k => k.favorit); }
+    else { kurse = kurseAmTag(tag); }
+
+    const tagName = tag === 'alle' ? 'Alle Tage' : (tag === 'favoriten' ? '★ Favoriten' : WOCHENTAGE[tag]);
+    document.getElementById('niveau-title').textContent = 'Niveau & Förderbedarf — ' + tagName;
+    const body = document.getElementById('niveau-body');
+
+    if (!kurse.length) {
+        body.innerHTML = `<div class="abz-stat-empty">Keine Kurse ${tag === 'alle' ? 'vorhanden' : 'am ' + tagName}.</div>`;
+        openModal('modal-niveau');
+        return;
+    }
+
+    // Pro Kurs ein eigener Block (eigener Förderbedarf + eigene „schwächste zuerst"-Liste)
+    let html = `<div class="abz-stat-sub">Pro Kurs: woran fehlt es noch? + Kinder nach Niveau (schwächste zuerst). Balken antippen zeigt die Namen.</div>`;
+    kurse.forEach(kurs => {
+        const kinder = kinderImKurs(kurs.id);
+        const cf = kursFarbe(kurs.id);
+        const zeit = kurs.von ? ` · ${kurs.von}${kurs.bis ? '–' + kurs.bis : ''}` : '';
+        html += `<div class="niveau-kurs">
+            <div class="niveau-kurs-head" style="background:${cf.hell};border-left-color:${cf.farbe}">
+                <span class="niveau-kurs-name" style="color:${cf.farbe}">${esc(kurs.name)}</span>
+                <span class="niveau-kurs-meta">${WOCHENTAGE_KURZ[kurs.wochentag]}${zeit} · ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</span>
+            </div>
+            ${kinder.length ? niveauBlockHTML(kinder) : `<div class="niveau-alldone" style="color:#94a3b8">Noch keine Kinder in diesem Kurs.</div>`}
+        </div>`;
+    });
     body.innerHTML = html;
     openModal('modal-niveau');
 }
