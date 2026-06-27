@@ -2216,11 +2216,12 @@ function deleteKurs(id) {
     const kurs = getKurs(id); if (!kurs) return;
     const anzahl = kinderImKurs(id).length;
     const msg = anzahl > 0
-        ? `Kurs „${kurs.name}" löschen?\n\nDie ${anzahl} Kind${anzahl !== 1 ? 'er' : ''} werden NICHT gelöscht – sie landen unter „Ohne Kurs".`
+        ? `Kurs „${kurs.name}" löschen?\n\n⚠️ ACHTUNG: Die ${anzahl} Kind${anzahl !== 1 ? 'er' : ''} in diesem Kurs werden MITGELÖSCHT – samt aller Lernfortschritte und Abzeichen.\n\nDas lässt sich NICHT rückgängig machen!`
         : `Kurs „${kurs.name}" löschen?`;
     if (!confirm(msg)) return;
-    state.kinder.forEach(k => { if (k.kursId === id) k.kursId = null; });
+    state.kinder = state.kinder.filter(k => k.kursId !== id);   // Kinder des Kurses mitlöschen
     state.kurse = state.kurse.filter(k => k.id !== id);
+    if (kindObj(expandedKindId) === undefined) expandedKindId = null;   // ggf. offenes (gelöschtes) Kind schließen
     save(); renderKurse();
 }
 
