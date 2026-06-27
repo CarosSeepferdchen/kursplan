@@ -857,7 +857,9 @@
         .bedarf-bar-fill { display: block; height: 100%; border-radius: 6px; min-width: 4px; transition: width 0.3s; }
         .bedarf-bar-count { flex: 0 0 auto; min-width: 1.2rem; text-align: right; font-size: 0.82rem; font-weight: 800; color: #0f172a; }
         .niveau-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0 0 0.5rem; padding: 0 0.65rem 0 1.7rem; }
-        .niveau-chip { font-size: 0.72rem; font-weight: 700; border: 1px solid; border-radius: 99px; padding: 0.1rem 0.5rem; white-space: nowrap; }
+        .niveau-chip { font-size: 0.72rem; font-weight: 700; border: 1px solid; border-radius: 99px; padding: 0.12rem 0.55rem; white-space: nowrap; cursor: pointer; font-family: inherit; transition: transform 0.1s, filter 0.1s; }
+        .niveau-chip:hover { filter: brightness(0.96); }
+        .niveau-chip:active { transform: scale(0.93); }
         .niveau-fertig { font-size: 0.74rem; font-weight: 700; color: #16a34a; margin: 0 0 0.5rem; padding-left: 1.7rem; }
         .anw-share-toolbar { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.55rem; }
         .anw-share-count { font-size: 0.8rem; color: #64748b; font-weight: 700; margin-left: auto; }
@@ -2746,6 +2748,7 @@ const KATEGORIEN = [
     { id: 'streckentauchen', icon: '➡️', name: 'Streckentauchen', farbe: '#0d9488' },
     { id: 'springen',        icon: '🤸', name: 'Springen',        farbe: '#f59e0b' },
     { id: 'wasser',          icon: '💧', name: 'Wassergewöhnung', farbe: '#0ea5e9' },
+    { id: 'selbstrettung',   icon: '🛟', name: 'Selbstrettung',   farbe: '#dc2626' },
     { id: 'theorie',         icon: '📋', name: 'Theorie',         farbe: '#64748b' },
     { id: 'sonstiges',       icon: '📌', name: 'Sonstiges',       farbe: '#94a3b8' },
 ];
@@ -2757,7 +2760,7 @@ const AUFGABEN_KAT = {
     sp1:'theorie', sp2:'wasser', sp3:'wasser', sp4:'springen', sp5:'tieftauchen', sp6:'ausdauer', sp7:'technik',
     se1:'ausdauer', se2:'streckentauchen', se3:'technik',
     br1:'springen', br2:'springen', br3:'ausdauer', br4:'tieftauchen', br5:'theorie',
-    si1:'springen', si2:'ausdauer', si3:'streckentauchen', si4:'theorie', si5:'theorie',
+    si1:'springen', si2:'ausdauer', si3:'streckentauchen', si4:'selbstrettung', si5:'theorie',
     go1:'ausdauer', go2:'technik', go3:'technik', go4:'streckentauchen', go5:'ausdauer',
 };
 // Kategorie einer Aufgabe: eigenes Feld (im Editor gekoppelt) → sonst Standard-Map → sonst „sonstiges"
@@ -2780,7 +2783,7 @@ function offeneKategorien(kind) {
     const prog = (kind.progress || {})[st.id] || {};
     const set = new Set();
     st.anforderungen.forEach(a => { if (!prog[a.id]) set.add(aufgabeKat(a)); });
-    return [...set];
+    return KATEGORIEN.filter(k => set.has(k.id)).map(k => k.id);   // feste Reihenfolge → ruhiger fürs Auge
 }
 
 // ── Niveau-Modus: Förderbedarf direkt in den Kurskarten ───────────
@@ -2816,7 +2819,22 @@ function niveauKindChipsHTML(kind) {
     if (alleStufenFertig(kind)) return `<div class="niveau-fertig">✓ alles geschafft</div>`;
     const offen = offeneKategorien(kind);
     if (!offen.length) return '';
-    return `<div class="niveau-chips">${offen.map(id => { const k = KAT_BY_ID[id]; return k ? `<span class="niveau-chip" style="background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66">${k.icon} ${esc(k.name)}</span>` : ''; }).join('')}</div>`;
+    return `<div class="niveau-chips">${offen.map(id => { const k = KAT_BY_ID[id]; return k ? `<button class="niveau-chip" style="background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66" title="Tippen: „${esc(k.name)}" für dieses Kind als geschafft markieren" onclick="event.stopPropagation();markKategorieDone('${kind.id}','${id}')">${k.icon} ${esc(k.name)} ✓</button>` : ''; }).join('')}</div>`;
+}
+
+// Ein Thema für ein Kind direkt als geschafft markieren — hakt alle offenen Ziele dieses Themas
+// in der aktuellen Stufe im Hintergrund ab (ohne dass man ins Logbuch muss).
+function markKategorieDone(kindId, katId) {
+    const kind = kindObj(kindId); if (!kind) return;
+    if (alleStufenFertig(kind)) return;
+    const st = aktuelleStufe(kind);
+    if (!kind.progress) kind.progress = {};
+    if (!kind.progress[st.id]) kind.progress[st.id] = {};
+    let changed = false;
+    st.anforderungen.forEach(a => {
+        if (!kind.progress[st.id][a.id] && aufgabeKat(a) === katId) { kind.progress[st.id][a.id] = true; changed = true; }
+    });
+    if (changed) { save(); renderKurse(); }
 }
 
 function oeffneKursTeilen() {
