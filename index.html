@@ -713,7 +713,10 @@
         .badge-req-row::before { content: "▸"; color: #94a3b8; flex-shrink: 0; }
         .badge-req-leer { font-size: 0.82rem; color: #cbd5e1; font-style: italic; }
 
-        .anf-row { display: flex; gap: 0.4rem; margin-bottom: 0.4rem; }
+        .anf-row { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.65rem; }
+        .anf-row2 { display: flex; gap: 0.4rem; align-items: center; }
+        .anf-kat { flex: 1; padding: 0.4rem 0.5rem; border: 1.5px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 0.82rem; background: white; color: #334155; }
+        .anf-kat:focus { outline: none; border-color: #f97316; }
         .anf-input {
             flex: 1;
             padding: 0.55rem 0.75rem;
@@ -844,10 +847,15 @@
         /* ── Niveau & Förderbedarf ── */
         /* ── Niveau-Modus: Förderbedarf direkt in den Kurskarten ── */
         .kurse-stat-btn.active { background: #2563eb; border-color: #2563eb; color: white; }
-        .kurs-bedarf { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; padding: 0.55rem 0.65rem 0.4rem; }
-        .kurs-bedarf-label { font-size: 0.74rem; font-weight: 800; color: #475569; }
-        .kurs-bedarf-chip { font-size: 0.74rem; font-weight: 700; border: 1px solid; border-radius: 99px; padding: 0.12rem 0.55rem; white-space: nowrap; }
-        .kurs-bedarf-done { font-size: 0.82rem; font-weight: 600; color: #16a34a; }
+        /* Förderbedarf-Säulen in der Kurskarte */
+        .kurs-bedarf { padding: 0.55rem 0.7rem 0.5rem; }
+        .kurs-bedarf-head { font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 0.45rem; }
+        .kurs-bedarf-done { font-size: 0.84rem; font-weight: 600; color: #16a34a; }
+        .bedarf-bar-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.32rem; }
+        .bedarf-bar-label { flex: 0 0 7.6rem; font-size: 0.74rem; font-weight: 700; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bedarf-bar-track { flex: 1; height: 15px; background: #f1f5f9; border-radius: 6px; overflow: hidden; }
+        .bedarf-bar-fill { display: block; height: 100%; border-radius: 6px; min-width: 4px; transition: width 0.3s; }
+        .bedarf-bar-count { flex: 0 0 auto; min-width: 1.2rem; text-align: right; font-size: 0.82rem; font-weight: 800; color: #0f172a; }
         .niveau-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0 0 0.5rem; padding: 0 0.65rem 0 1.7rem; }
         .niveau-chip { font-size: 0.72rem; font-weight: 700; border: 1px solid; border-radius: 99px; padding: 0.1rem 0.5rem; white-space: nowrap; }
         .niveau-fertig { font-size: 0.74rem; font-weight: 700; color: #16a34a; margin: 0 0 0.5rem; padding-left: 1.7rem; }
@@ -2327,16 +2335,19 @@ function openEditStufe(id) {
     document.getElementById('badge-name').value = stufe.name;
     document.getElementById('badge-color').value = stufe.farbe;
     document.getElementById('anf-builder').innerHTML = '';
-    if (stufe.anforderungen.length) stufe.anforderungen.forEach(a => addAnfRow(a.text));
+    if (stufe.anforderungen.length) stufe.anforderungen.forEach(a => addAnfRow(a.text, aufgabeKat(a)));
     else { addAnfRow(); addAnfRow(); addAnfRow(); }
     openModal('modal-badge');
 }
 
-function addAnfRow(value = '') {
+function addAnfRow(value = '', kat = '') {
     const row = document.createElement('div');
     row.className = 'anf-row';
-    row.innerHTML = `<input class="anf-input" type="text" value="${esc(value)}" placeholder="Aufgabe beschreiben…">
-        <button class="anf-del" onclick="this.closest('.anf-row').remove()" title="Entfernen">×</button>`;
+    row.innerHTML = `<input class="anf-input" type="text" value="${esc(value)}" placeholder="Ziel beschreiben…">
+        <div class="anf-row2">
+            <select class="anf-kat" title="Thema/Kategorie">${katOptionsHTML(kat)}</select>
+            <button class="anf-del" onclick="this.closest('.anf-row').remove()" title="Entfernen">×</button>
+        </div>`;
     document.getElementById('anf-builder').appendChild(row);
 }
 
@@ -2345,17 +2356,14 @@ function saveStufe() {
     const name = document.getElementById('badge-name').value.trim() || stufe.name;
     const farbe = document.getElementById('badge-color').value;
     const neue = [];
-    const inputs = [...document.querySelectorAll('#anf-builder .anf-input')];
-    inputs.forEach((inp, idx) => {
-        const text = inp.value.trim();
+    const rows = [...document.querySelectorAll('#anf-builder .anf-row')];
+    rows.forEach((row, idx) => {
+        const text = row.querySelector('.anf-input').value.trim();
         if (text) {
+            const kat = row.querySelector('.anf-kat').value;
             // Aufgabe an derselben Position behält ihre ID (auch bei Umbenennen)
             const alt = stufe.anforderungen[idx];
-            if (alt) {
-                neue.push({ id: alt.id, text });
-            } else {
-                neue.push({ id: uid(), text });
-            }
+            neue.push({ id: alt ? alt.id : uid(), text, kat });
         }
     });
     Object.assign(stufe, { name, farbe, anforderungen: neue });
@@ -2732,26 +2740,29 @@ function toggleAbzNamen(rowEl) {
 // Kategorien (Themen), in die die Abzeichen-Aufgaben fallen — so zählt z.B. die 25m (Seepferdchen)
 // und die 200m (Bronze) beide als „Ausdauer".
 const KATEGORIEN = [
-    { id: 'wasser',   icon: '💧', name: 'Wassergewöhnung',   farbe: '#0ea5e9' },
-    { id: 'ausdauer', icon: '🏊', name: 'Ausdauer/Strecke',  farbe: '#2563eb' },
-    { id: 'technik',  icon: '🦵', name: 'Schwimmtechnik',    farbe: '#7c3aed' },
-    { id: 'springen', icon: '🤸', name: 'Springen',          farbe: '#f59e0b' },
-    { id: 'tauchen',  icon: '🤿', name: 'Tauchen',           farbe: '#0891b2' },
-    { id: 'rettung',  icon: '🆘', name: 'Rettung/Sicherheit', farbe: '#dc2626' },
-    { id: 'theorie',  icon: '📋', name: 'Baderegeln/Theorie', farbe: '#64748b' },
-    { id: 'sonstiges',icon: '📌', name: 'Sonstiges',         farbe: '#94a3b8' },
+    { id: 'technik',         icon: '🦵', name: 'Technik',         farbe: '#7c3aed' },
+    { id: 'ausdauer',        icon: '🏊', name: 'Ausdauer',        farbe: '#2563eb' },
+    { id: 'tieftauchen',     icon: '🤿', name: 'Tieftauchen',     farbe: '#0891b2' },
+    { id: 'streckentauchen', icon: '➡️', name: 'Streckentauchen', farbe: '#0d9488' },
+    { id: 'springen',        icon: '🤸', name: 'Springen',        farbe: '#f59e0b' },
+    { id: 'wasser',          icon: '💧', name: 'Wassergewöhnung', farbe: '#0ea5e9' },
+    { id: 'theorie',         icon: '📋', name: 'Theorie',         farbe: '#64748b' },
+    { id: 'sonstiges',       icon: '📌', name: 'Sonstiges',       farbe: '#94a3b8' },
 ];
 const KAT_BY_ID = {}; KATEGORIEN.forEach(k => KAT_BY_ID[k.id] = k);
-// Zuordnung der Standard-Aufgaben (per ID) zu Kategorien — Tom kann das später anpassen lassen
+// Standard-Zuordnung der Default-Aufgaben (per ID) — wird genutzt, solange die Aufgabe kein
+// eigenes `kat`-Feld hat. Im Abzeichen-Editor pro Aufgabe änderbar (anf.kat).
 const AUFGABEN_KAT = {
-    fr1:'theorie', fr2:'wasser', fr3:'wasser', fr4:'springen', fr5:'ausdauer', fr6:'tauchen', fr7:'wasser', fr8:'theorie',
-    sp1:'theorie', sp2:'wasser', sp3:'wasser', sp4:'springen', sp5:'tauchen', sp6:'ausdauer', sp7:'technik',
-    se1:'ausdauer', se2:'tauchen', se3:'technik',
-    br1:'springen', br2:'springen', br3:'ausdauer', br4:'tauchen', br5:'theorie',
-    si1:'springen', si2:'ausdauer', si3:'tauchen', si4:'rettung', si5:'theorie',
-    go1:'ausdauer', go2:'technik', go3:'technik', go4:'tauchen', go5:'rettung',
+    fr1:'theorie', fr2:'wasser', fr3:'wasser', fr4:'springen', fr5:'ausdauer', fr6:'wasser', fr7:'wasser', fr8:'theorie',
+    sp1:'theorie', sp2:'wasser', sp3:'wasser', sp4:'springen', sp5:'tieftauchen', sp6:'ausdauer', sp7:'technik',
+    se1:'ausdauer', se2:'streckentauchen', se3:'technik',
+    br1:'springen', br2:'springen', br3:'ausdauer', br4:'tieftauchen', br5:'theorie',
+    si1:'springen', si2:'ausdauer', si3:'streckentauchen', si4:'theorie', si5:'theorie',
+    go1:'ausdauer', go2:'technik', go3:'technik', go4:'streckentauchen', go5:'ausdauer',
 };
-function aufgabeKat(anfId) { return AUFGABEN_KAT[anfId] || 'sonstiges'; }
+// Kategorie einer Aufgabe: eigenes Feld (im Editor gekoppelt) → sonst Standard-Map → sonst „sonstiges"
+function aufgabeKat(anf) { return (anf && anf.kat) || AUFGABEN_KAT[anf && anf.id] || 'sonstiges'; }
+function katOptionsHTML(sel) { return KATEGORIEN.filter(k => k.id !== 'sonstiges').map(k => `<option value="${k.id}" ${k.id === sel ? 'selected' : ''}>${k.icon} ${k.name}</option>`).join(''); }
 
 // Niveau-Punktzahl: höher = weiter. (für Sortierung)
 function kindNiveauScore(kind) {
@@ -2768,7 +2779,7 @@ function offeneKategorien(kind) {
     const st = aktuelleStufe(kind);
     const prog = (kind.progress || {})[st.id] || {};
     const set = new Set();
-    st.anforderungen.forEach(a => { if (!prog[a.id]) set.add(aufgabeKat(a.id)); });
+    st.anforderungen.forEach(a => { if (!prog[a.id]) set.add(aufgabeKat(a)); });
     return [...set];
 }
 
@@ -2779,18 +2790,25 @@ function toggleNiveauModus() {
     renderKurse();
 }
 
-// Kompakte Förderbedarf-Zeile für einen Kurs (Themen + Anzahl Kinder mit offener Aufgabe)
+// Förderbedarf eines Kurses als Säulen-Grafik: welche Themen müssen am meisten geübt werden?
+// (= wie viele Kinder pro Thema noch eine offene Aufgabe haben), absteigend sortiert.
 function foerderbedarfHTML(kinder) {
     const katKinder = {}; KATEGORIEN.forEach(k => katKinder[k.id] = []);
     kinder.forEach(kind => offeneKategorien(kind).forEach(id => { if (katKinder[id]) katKinder[id].push(kind); }));
     const aktiv = KATEGORIEN.filter(k => katKinder[k.id].length)
         .sort((a, b) => katKinder[b.id].length - katKinder[a.id].length);
-    if (!aktiv.length) return `<div class="kurs-bedarf"><span class="kurs-bedarf-done">🎉 Alle durch — kein offener Förderbedarf</span></div>`;
-    const chips = aktiv.map(k => {
+    if (!aktiv.length) return `<div class="kurs-bedarf"><div class="kurs-bedarf-done">🎉 Alle durch — kein offener Förderbedarf</div></div>`;
+    const maxC = Math.max(1, ...aktiv.map(k => katKinder[k.id].length));
+    const bars = aktiv.map(k => {
         const n = katKinder[k.id].length;
-        return `<span class="kurs-bedarf-chip" style="background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66" title="${esc(k.name)}: ${n} Kind${n !== 1 ? 'er' : ''}">${k.icon} ${esc(k.name)} <b>${n}</b></span>`;
+        const pct = Math.max(Math.round(n / maxC * 100), 8);
+        return `<div class="bedarf-bar-row" title="${esc(k.name)}: ${n} Kind${n !== 1 ? 'er' : ''}">
+            <span class="bedarf-bar-label">${k.icon} ${esc(k.name)}</span>
+            <span class="bedarf-bar-track"><span class="bedarf-bar-fill" style="width:${pct}%;background:${k.farbe}"></span></span>
+            <span class="bedarf-bar-count">${n}</span>
+        </div>`;
     }).join('');
-    return `<div class="kurs-bedarf"><span class="kurs-bedarf-label">Noch offen:</span>${chips}</div>`;
+    return `<div class="kurs-bedarf"><div class="kurs-bedarf-head">Am meisten üben</div>${bars}</div>`;
 }
 
 // Offene-Themen-Chips für ein einzelnes Kind (im Niveau-Modus unter der Kind-Zeile)
