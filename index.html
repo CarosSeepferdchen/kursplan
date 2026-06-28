@@ -713,10 +713,20 @@
         .badge-req-row::before { content: "▸"; color: #94a3b8; flex-shrink: 0; }
         .badge-req-leer { font-size: 0.82rem; color: #cbd5e1; font-style: italic; }
 
-        .anf-row { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.65rem; }
-        .anf-row2 { display: flex; gap: 0.4rem; align-items: center; }
-        .anf-kat { flex: 1; padding: 0.4rem 0.5rem; border: 1.5px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 0.82rem; background: white; color: #334155; }
-        .anf-kat:focus { outline: none; border-color: #f97316; }
+        .anf-row { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; padding-bottom: 0.6rem; border-bottom: 1px solid #f1f5f9; }
+        .anf-row-top { display: flex; gap: 0.4rem; align-items: center; }
+        .anf-kats { display: flex; flex-wrap: wrap; gap: 0.3rem; padding-left: 0.1rem; }
+        .kat-toggle { font-size: 0.74rem; font-weight: 700; border: 1.5px solid; border-radius: 99px; padding: 0.18rem 0.6rem; cursor: pointer; font-family: inherit; white-space: nowrap; transition: transform 0.1s; }
+        .kat-toggle:active { transform: scale(0.94); }
+        /* Themen verwalten */
+        .themen-liste { display: flex; flex-direction: column; gap: 0.45rem; }
+        .themen-row { display: flex; align-items: center; gap: 0.4rem; }
+        .themen-icon { width: 3rem; text-align: center; padding: 0.4rem 0.2rem; border: 1.5px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 1rem; }
+        .themen-name { flex: 1; min-width: 0; padding: 0.4rem 0.6rem; border: 1.5px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 0.9rem; }
+        .themen-icon:focus, .themen-name:focus { outline: none; border-color: #f97316; }
+        .themen-farbe { width: 38px; height: 38px; padding: 2px; border: 1.5px solid #e2e8f0; border-radius: 8px; cursor: pointer; flex-shrink: 0; }
+        .themen-del { width: 34px; height: 34px; flex-shrink: 0; border: none; border-radius: 8px; background: #fee2e2; color: #dc2626; font-size: 1.1rem; cursor: pointer; font-family: inherit; }
+        .themen-del:hover { background: #fecaca; }
         .anf-input {
             flex: 1;
             padding: 0.55rem 0.75rem;
@@ -1196,6 +1206,9 @@
     </div>
 
     <div id="tab-abzeichen" hidden>
+        <div style="display:flex;justify-content:flex-end;padding:.3rem 0">
+            <button class="kurse-stat-btn" onclick="oeffneThemen()">🏷️ Themen/Chips verwalten</button>
+        </div>
         <div id="badges-list" style="padding:.5rem 0"></div>
     </div>
 
@@ -1340,14 +1353,32 @@
             </div>
         </div>
         <div class="form-group">
-            <label class="form-label">Aufgaben</label>
+            <label class="form-label">Ziele &amp; Themen-Chips</label>
+            <div style="font-size:.75rem;color:#64748b;margin-bottom:.5rem">Tippe die Themen an, die zu einem Ziel gehören (mehrere möglich, z. B. Seestern → Wassergewöhnung + Technik).</div>
             <div id="anf-builder"></div>
-            <button class="btn btn-secondary btn-sm" onclick="addAnfRow()" style="margin-top:0.4rem">+ Aufgabe</button>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem">
+                <button class="btn btn-secondary btn-sm" onclick="addAnfRow()">＋ Ziel</button>
+                <button class="btn btn-secondary btn-sm" onclick="neuesThema()">🏷️ Neues Thema</button>
+                <button class="btn btn-secondary btn-sm" onclick="oeffneThemen()">⚙ Themen verwalten</button>
+            </div>
         </div>
         <div class="modal-footer" style="display:flex;gap:0.6rem;margin-top:1.25rem;padding-top:1rem;border-top:1px solid #f1f5f9">
             <button class="btn btn-primary" onclick="saveStufe()" style="flex:1">Speichern</button>
             <button class="btn btn-secondary" onclick="closeModal('modal-badge')">Abbrechen</button>
         </div>
+    </div>
+</div>
+
+<!-- Themen / Chips verwalten -->
+<div class="modal-bg" id="modal-themen">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 class="modal-title">Themen / Chips verwalten</h2>
+            <button class="modal-close" onclick="closeModal('modal-themen')">×</button>
+        </div>
+        <p style="font-size:.86rem;color:#475569;margin-bottom:.6rem">Hier kannst du eigene Chips anlegen, umbenennen, einfärben oder löschen. Die Chips verknüpfst du dann im „Abzeichen bearbeiten"-Dialog mit den Zielen.</p>
+        <div id="themen-liste" class="themen-liste"></div>
+        <button class="btn btn-secondary btn-sm" onclick="neuesThemaVerwalten()" style="margin-top:0.6rem">＋ Neues Thema</button>
     </div>
 </div>
 
@@ -1466,6 +1497,10 @@ function ensureStufen() {
     // Alte Entweder/Oder-Verknüpfung restlos entfernen (Feature abgeschafft)
     state.badges.forEach(b => (b.anforderungen || []).forEach(a => { delete a.entwederOder; }));
     state.stufenVersion = STUFEN_VERSION;
+    // Themen-Chips: beim ersten Mal mit den Standard-Themen füllen (danach frei bearbeitbar)
+    if (!Array.isArray(state.kategorien) || !state.kategorien.length) {
+        state.kategorien = JSON.parse(JSON.stringify(KATEGORIEN_DEFAULT));
+    }
 }
 
 function normalizeState(s) {
@@ -2338,19 +2373,20 @@ function openEditStufe(id) {
     document.getElementById('badge-name').value = stufe.name;
     document.getElementById('badge-color').value = stufe.farbe;
     document.getElementById('anf-builder').innerHTML = '';
-    if (stufe.anforderungen.length) stufe.anforderungen.forEach(a => addAnfRow(a.text, aufgabeKat(a)));
+    if (stufe.anforderungen.length) stufe.anforderungen.forEach(a => addAnfRow(a.text, aufgabeKats(a)));
     else { addAnfRow(); addAnfRow(); addAnfRow(); }
     openModal('modal-badge');
 }
 
-function addAnfRow(value = '', kat = '') {
+function addAnfRow(value = '', kats = []) {
+    if (!Array.isArray(kats)) kats = kats ? [kats] : [];
     const row = document.createElement('div');
     row.className = 'anf-row';
-    row.innerHTML = `<input class="anf-input" type="text" value="${esc(value)}" placeholder="Ziel beschreiben…">
-        <div class="anf-row2">
-            <select class="anf-kat" title="Thema/Kategorie">${katOptionsHTML(kat)}</select>
-            <button class="anf-del" onclick="this.closest('.anf-row').remove()" title="Entfernen">×</button>
-        </div>`;
+    row.innerHTML = `<div class="anf-row-top">
+            <input class="anf-input" type="text" value="${esc(value)}" placeholder="Ziel beschreiben…">
+            <button class="anf-del" onclick="this.closest('.anf-row').remove()" title="Ziel entfernen">×</button>
+        </div>
+        <div class="anf-kats">${katToggleChipsHTML(kats)}</div>`;
     document.getElementById('anf-builder').appendChild(row);
 }
 
@@ -2363,14 +2399,58 @@ function saveStufe() {
     rows.forEach((row, idx) => {
         const text = row.querySelector('.anf-input').value.trim();
         if (text) {
-            const kat = row.querySelector('.anf-kat').value;
+            const kats = [...row.querySelectorAll('.anf-kats .kat-toggle.sel')].map(b => b.dataset.kat);
             // Aufgabe an derselben Position behält ihre ID (auch bei Umbenennen)
             const alt = stufe.anforderungen[idx];
-            neue.push({ id: alt ? alt.id : uid(), text, kat });
+            neue.push({ id: alt ? alt.id : uid(), text, kats });
         }
     });
     Object.assign(stufe, { name, farbe, anforderungen: neue });
     save(); closeModal('modal-badge'); renderStufen(); renderKurse();
+}
+
+// ── Eigene Themen/Chips verwalten ─────────────────────────────────
+function neuesThema() {
+    const name = (prompt('Name des neuen Themas (Chip):') || '').trim();
+    if (!name) return null;
+    const farbe = KAT_PALETTE[state.kategorien.length % KAT_PALETTE.length];
+    const k = { id: 'kat_' + uid(), icon: '🏷️', name, farbe };
+    state.kategorien.push(k);
+    save();
+    // falls der Abzeichen-Editor offen ist: neuen (nicht ausgewählten) Chip an jede Ziel-Zeile hängen
+    document.querySelectorAll('#anf-builder .anf-kats').forEach(c => c.insertAdjacentHTML('beforeend', katChipHTML(k, false)));
+    return k;
+}
+function oeffneThemen() { renderThemenListe(); openModal('modal-themen'); }
+function renderThemenListe() {
+    const box = document.getElementById('themen-liste');
+    if (!box) return;
+    box.innerHTML = state.kategorien.map(k => `<div class="themen-row">
+        <input class="themen-icon" value="${esc(k.icon || '')}" maxlength="4" placeholder="🏷️" onchange="updateThema('${k.id}','icon',this.value)" title="Emoji (optional)">
+        <input class="themen-name" type="text" value="${esc(k.name)}" onchange="updateThema('${k.id}','name',this.value)">
+        <input type="color" class="themen-farbe" value="${k.farbe}" onchange="updateThema('${k.id}','farbe',this.value)" title="Farbe">
+        <button class="themen-del" onclick="deleteThema('${k.id}')" title="Thema löschen">×</button>
+    </div>`).join('') || '<div style="color:#94a3b8;font-size:.9rem">Noch keine Themen.</div>';
+}
+function neuesThemaVerwalten() { if (neuesThema()) renderThemenListe(); }
+function updateThema(id, feld, val) {
+    const k = katById(id); if (!k) return;
+    val = (val || '').trim();
+    if (feld === 'name') { if (val) k.name = val; }
+    else if (feld === 'icon') k.icon = val;
+    else if (feld === 'farbe') k.farbe = val;
+    save();
+    if (!document.getElementById('tab-kurse').hidden) renderKurse();
+}
+function deleteThema(id) {
+    const k = katById(id); if (!k) return;
+    if (!confirm(`Thema „${k.name}" löschen?\nEs wird auch von allen Zielen entfernt.`)) return;
+    state.kategorien = state.kategorien.filter(x => x.id !== id);
+    state.badges.forEach(b => (b.anforderungen || []).forEach(a => {
+        if (Array.isArray(a.kats)) a.kats = a.kats.filter(c => c !== id);
+        if (a.kat === id) delete a.kat;
+    }));
+    save(); renderThemenListe(); renderKurse();
 }
 
 // ── Modal helpers ─────────────────────────────────────────────────
@@ -2742,7 +2822,8 @@ function toggleAbzNamen(rowEl) {
 // ── Niveau & Förderbedarf ──────────────────────────────────────────
 // Kategorien (Themen), in die die Abzeichen-Aufgaben fallen — so zählt z.B. die 25m (Seepferdchen)
 // und die 200m (Bronze) beide als „Ausdauer".
-const KATEGORIEN = [
+// Standard-Themen (Chips) — werden beim ersten Start nach state.kategorien kopiert, danach frei bearbeitbar.
+const KATEGORIEN_DEFAULT = [
     { id: 'technik',         icon: '🦵', name: 'Technik',         farbe: '#7c3aed' },
     { id: 'ausdauer',        icon: '🏊', name: 'Ausdauer',        farbe: '#2563eb' },
     { id: 'tieftauchen',     icon: '🤿', name: 'Tieftauchen',     farbe: '#0891b2' },
@@ -2751,11 +2832,10 @@ const KATEGORIEN = [
     { id: 'wasser',          icon: '💧', name: 'Wassergewöhnung', farbe: '#0ea5e9' },
     { id: 'selbstrettung',   icon: '🛟', name: 'Selbstrettung',   farbe: '#dc2626' },
     { id: 'theorie',         icon: '📋', name: 'Theorie',         farbe: '#64748b' },
-    { id: 'sonstiges',       icon: '📌', name: 'Sonstiges',       farbe: '#94a3b8' },
 ];
-const KAT_BY_ID = {}; KATEGORIEN.forEach(k => KAT_BY_ID[k.id] = k);
-// Standard-Zuordnung der Default-Aufgaben (per ID) — wird genutzt, solange die Aufgabe kein
-// eigenes `kat`-Feld hat. Im Abzeichen-Editor pro Aufgabe änderbar (anf.kat).
+const KAT_PALETTE = ['#16a34a','#db2777','#ea580c','#0d9488','#7c3aed','#2563eb','#ca8a04','#0891b2','#dc2626','#4f46e5','#65a30d','#9333ea'];
+function katById(id) { return (state.kategorien || []).find(k => k.id === id); }
+// Standard-Zuordnung der Default-Aufgaben (Fallback, solange eine Aufgabe keine eigenen Themen hat)
 const AUFGABEN_KAT = {
     fr1:'theorie', fr2:'wasser', fr3:'wasser', fr4:'springen', fr5:'ausdauer', fr6:'wasser', fr7:'wasser', fr8:'theorie',
     sp1:'theorie', sp2:'wasser', sp3:'wasser', sp4:'springen', sp5:'tieftauchen', sp6:'ausdauer', sp7:'technik',
@@ -2764,9 +2844,24 @@ const AUFGABEN_KAT = {
     si1:'springen', si2:'ausdauer', si3:'streckentauchen', si4:'selbstrettung', si5:'theorie',
     go1:'ausdauer', go2:'technik', go3:'technik', go4:'streckentauchen', go5:'ausdauer',
 };
-// Kategorie einer Aufgabe: eigenes Feld (im Editor gekoppelt) → sonst Standard-Map → sonst „sonstiges"
-function aufgabeKat(anf) { return (anf && anf.kat) || AUFGABEN_KAT[anf && anf.id] || 'sonstiges'; }
-function katOptionsHTML(sel) { return KATEGORIEN.filter(k => k.id !== 'sonstiges').map(k => `<option value="${k.id}" ${k.id === sel ? 'selected' : ''}>${k.icon} ${k.name}</option>`).join(''); }
+// Themen (Chips) einer Aufgabe — MEHRFACH möglich. Eigene `kats` → altes `kat` → Standard-Map → keins.
+function aufgabeKats(anf) {
+    if (anf && Array.isArray(anf.kats)) return anf.kats;
+    if (anf && anf.kat) return [anf.kat];
+    if (anf && AUFGABEN_KAT[anf.id]) return [AUFGABEN_KAT[anf.id]];
+    return [];
+}
+// Ein Auswahl-Chip (Mehrfachauswahl) für den Abzeichen-Editor
+function katChipHTML(k, sel) {
+    const style = sel ? `background:${k.farbe};border-color:${k.farbe};color:#fff` : `background:${k.farbe}1a;border-color:${k.farbe}66;color:${k.farbe}`;
+    return `<button type="button" class="kat-toggle${sel ? ' sel' : ''}" data-kat="${k.id}" data-farbe="${k.farbe}" style="${style}" onclick="toggleKatChip(this)">${k.icon ? k.icon + ' ' : ''}${esc(k.name)}</button>`;
+}
+function katToggleChipsHTML(kats) { return state.kategorien.map(k => katChipHTML(k, kats.includes(k.id))).join(''); }
+function toggleKatChip(btn) {
+    btn.classList.toggle('sel');
+    const f = btn.dataset.farbe, on = btn.classList.contains('sel');
+    btn.style.cssText = on ? `background:${f};border-color:${f};color:#fff` : `background:${f}1a;border-color:${f}66;color:${f}`;
+}
 
 // Niveau-Punktzahl: höher = weiter. (für Sortierung)
 function kindNiveauScore(kind) {
@@ -2783,8 +2878,8 @@ function offeneKategorien(kind) {
     const st = aktuelleStufe(kind);
     const prog = (kind.progress || {})[st.id] || {};
     const set = new Set();
-    st.anforderungen.forEach(a => { if (!prog[a.id]) set.add(aufgabeKat(a)); });
-    return KATEGORIEN.filter(k => set.has(k.id)).map(k => k.id);   // feste Reihenfolge → ruhiger fürs Auge
+    st.anforderungen.forEach(a => { if (!prog[a.id]) aufgabeKats(a).forEach(c => set.add(c)); });
+    return state.kategorien.filter(k => set.has(k.id)).map(k => k.id);   // feste Reihenfolge → ruhiger fürs Auge
 }
 
 // ── Niveau-Modus: Förderbedarf direkt in den Kurskarten ───────────
@@ -2797,9 +2892,9 @@ function toggleNiveauModus() {
 // Förderbedarf eines Kurses als Säulen-Grafik: welche Themen müssen am meisten geübt werden?
 // (= wie viele Kinder pro Thema noch eine offene Aufgabe haben), absteigend sortiert.
 function foerderbedarfHTML(kinder) {
-    const katKinder = {}; KATEGORIEN.forEach(k => katKinder[k.id] = []);
+    const katKinder = {}; state.kategorien.forEach(k => katKinder[k.id] = []);
     kinder.forEach(kind => offeneKategorien(kind).forEach(id => { if (katKinder[id]) katKinder[id].push(kind); }));
-    const aktiv = KATEGORIEN.filter(k => katKinder[k.id].length)
+    const aktiv = state.kategorien.filter(k => katKinder[k.id].length)
         .sort((a, b) => katKinder[b.id].length - katKinder[a.id].length);
     if (!aktiv.length) return `<div class="kurs-bedarf"><div class="kurs-bedarf-done">🎉 Alle durch — kein offener Förderbedarf</div></div>`;
     const maxC = Math.max(1, ...aktiv.map(k => katKinder[k.id].length));
@@ -2807,7 +2902,7 @@ function foerderbedarfHTML(kinder) {
         const n = katKinder[k.id].length;
         const pct = Math.max(Math.round(n / maxC * 100), 8);
         return `<div class="bedarf-bar-row" title="${esc(k.name)}: ${n} Kind${n !== 1 ? 'er' : ''}">
-            <span class="bedarf-bar-label">${k.icon} ${esc(k.name)}</span>
+            <span class="bedarf-bar-label">${k.icon ? k.icon + ' ' : ''}${esc(k.name)}</span>
             <span class="bedarf-bar-track"><span class="bedarf-bar-fill" style="width:${pct}%;background:${k.farbe}"></span></span>
             <span class="bedarf-bar-count">${n}</span>
         </div>`;
@@ -2818,9 +2913,9 @@ function foerderbedarfHTML(kinder) {
 // Themen-Reihenfolge eines Kurses: das im Kurs am HÄUFIGSTEN fehlende Thema zuerst
 // (bei Gleichstand nach fester KATEGORIEN-Reihenfolge) → Chips aller Kinder gleich geordnet.
 function kursKatReihenfolge(kinder) {
-    const cnt = {}; KATEGORIEN.forEach(k => cnt[k.id] = 0);
+    const cnt = {}; state.kategorien.forEach(k => cnt[k.id] = 0);
     kinder.forEach(kind => offeneKategorien(kind).forEach(id => { if (cnt[id] != null) cnt[id]++; }));
-    const order = KATEGORIEN.map(k => k.id);
+    const order = state.kategorien.map(k => k.id);
     return order.slice().sort((a, b) => (cnt[b] - cnt[a]) || (order.indexOf(a) - order.indexOf(b)));
 }
 
@@ -2831,7 +2926,7 @@ function niveauKindChipsHTML(kind, katOrder) {
     let offen = offeneKategorien(kind);
     if (!offen.length) return '';
     if (katOrder) offen = offen.slice().sort((a, b) => katOrder.indexOf(a) - katOrder.indexOf(b));
-    return `<div class="niveau-chips">${offen.map(id => { const k = KAT_BY_ID[id]; return k ? `<button class="niveau-chip" style="background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66" title="Tippen: „${esc(k.name)}" für dieses Kind als geschafft markieren" onclick="event.stopPropagation();markKategorieDone('${kind.id}','${id}')">${k.icon} ${esc(k.name)} ✓</button>` : ''; }).join('')}</div>`;
+    return `<div class="niveau-chips">${offen.map(id => { const k = katById(id); return k ? `<button class="niveau-chip" style="background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66" title="Tippen: „${esc(k.name)}" für dieses Kind als geschafft markieren" onclick="event.stopPropagation();markKategorieDone('${kind.id}','${id}')">${k.icon ? k.icon + ' ' : ''}${esc(k.name)} ✓</button>` : ''; }).join('')}</div>`;
 }
 
 // Ein Thema für ein Kind direkt als geschafft markieren — hakt alle offenen Ziele dieses Themas
@@ -2844,7 +2939,7 @@ function markKategorieDone(kindId, katId) {
     if (!kind.progress[st.id]) kind.progress[st.id] = {};
     let changed = false;
     st.anforderungen.forEach(a => {
-        if (!kind.progress[st.id][a.id] && aufgabeKat(a) === katId) { kind.progress[st.id][a.id] = true; changed = true; }
+        if (!kind.progress[st.id][a.id] && aufgabeKats(a).includes(katId)) { kind.progress[st.id][a.id] = true; changed = true; }
     });
     if (changed) { save(); renderKurse(); }
 }
