@@ -2926,7 +2926,7 @@ function niveauKindChipsHTML(kind, katOrder) {
     let offen = offeneKategorien(kind);
     if (!offen.length) return '';
     if (katOrder) offen = offen.slice().sort((a, b) => katOrder.indexOf(a) - katOrder.indexOf(b));
-    return `<div class="niveau-chips">${offen.map(id => { const k = katById(id); return k ? `<button class="niveau-chip" style="background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66" title="Tippen: „${esc(k.name)}" für dieses Kind als geschafft markieren" onclick="event.stopPropagation();markKategorieDone('${kind.id}','${id}')">${k.icon ? k.icon + ' ' : ''}${esc(k.name)} ✓</button>` : ''; }).join('')}</div>`;
+    return `<div class="niveau-chips">${offen.map(id => { const k = katById(id); return k ? `<button class="niveau-chip" style="background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66" title="Tippen: „${esc(k.name)}" für dieses Kind als geschafft markieren" onclick="event.stopPropagation();markKategorieDone('${kind.id}','${id}')">${k.icon ? k.icon + ' ' : ''}${esc(k.name)}</button>` : ''; }).join('')}</div>`;
 }
 
 // Ein Thema für ein Kind direkt als geschafft markieren — hakt alle offenen Ziele dieses Themas
