@@ -1845,8 +1845,9 @@ function kursCardHTML(kurs) {
     let zeit = '';
     if (kurs.von) zeit = `<span class="kurs-time-badge" style="background:${cf.hell};color:${cf.farbe}">${kurs.von}${kurs.bis ? '–' + kurs.bis : ''}</span>`;
     const bedarf = (niveauModus && kinder.length) ? foerderbedarfHTML(kinder) : '';
+    const katOrder = niveauModus ? kursKatReihenfolge(kinder) : null;   // Chips nach Häufigkeit im Kurs
     const kinderHTML = kinder.length
-        ? kinder.map(k => kindBlockHTML(k)).join('')
+        ? kinder.map(k => kindBlockHTML(k, false, katOrder)).join('')
         : `<div class="kurs-empty">${trainerMode ? 'Noch keine Kinder · „＋ Kind" zum Hinzufügen' : 'Noch keine Kinder eingetragen'}</div>`;
     return `<div class="kurs-card" style="border-left-color:${cf.farbe}">
         <div class="kurs-card-head" style="background:${cf.hell}">
@@ -1866,7 +1867,7 @@ function kursCardHTML(kurs) {
 
 // ── Kind-Zeile + Logbuch ──────────────────────────────────────────
 
-function kindBlockHTML(kind, showKurs) {
+function kindBlockHTML(kind, showKurs, katOrder) {
     const expanded = kind.id === expandedKindId;
     let sub = '';
     if (showKurs) {
@@ -1883,7 +1884,7 @@ function kindBlockHTML(kind, showKurs) {
             <div class="kind-summary" id="kindsum-${kind.id}">${kindSummaryInner(kind)}</div>
             <button class="kind-row-x" onclick="event.stopPropagation();deleteKind('${kind.id}')" title="Kind löschen">×</button>
         </div>
-        ${niveauModus ? niveauKindChipsHTML(kind) : ''}
+        ${niveauModus ? niveauKindChipsHTML(kind, katOrder) : ''}
         ${expanded ? `<div class="logbook"><div id="logbook-panel">${logbookInnerHTML(kind)}</div></div>` : ''}
     </div>`;
 }
@@ -2814,11 +2815,22 @@ function foerderbedarfHTML(kinder) {
     return `<div class="kurs-bedarf"><div class="kurs-bedarf-head">Am meisten üben</div>${bars}</div>`;
 }
 
-// Offene-Themen-Chips für ein einzelnes Kind (im Niveau-Modus unter der Kind-Zeile)
-function niveauKindChipsHTML(kind) {
+// Themen-Reihenfolge eines Kurses: das im Kurs am HÄUFIGSTEN fehlende Thema zuerst
+// (bei Gleichstand nach fester KATEGORIEN-Reihenfolge) → Chips aller Kinder gleich geordnet.
+function kursKatReihenfolge(kinder) {
+    const cnt = {}; KATEGORIEN.forEach(k => cnt[k.id] = 0);
+    kinder.forEach(kind => offeneKategorien(kind).forEach(id => { if (cnt[id] != null) cnt[id]++; }));
+    const order = KATEGORIEN.map(k => k.id);
+    return order.slice().sort((a, b) => (cnt[b] - cnt[a]) || (order.indexOf(a) - order.indexOf(b)));
+}
+
+// Offene-Themen-Chips für ein einzelnes Kind (im Niveau-Modus unter der Kind-Zeile).
+// katOrder = Häufigkeits-Reihenfolge des Kurses (häufigstes Thema zuerst).
+function niveauKindChipsHTML(kind, katOrder) {
     if (alleStufenFertig(kind)) return `<div class="niveau-fertig">✓ alles geschafft</div>`;
-    const offen = offeneKategorien(kind);
+    let offen = offeneKategorien(kind);
     if (!offen.length) return '';
+    if (katOrder) offen = offen.slice().sort((a, b) => katOrder.indexOf(a) - katOrder.indexOf(b));
     return `<div class="niveau-chips">${offen.map(id => { const k = KAT_BY_ID[id]; return k ? `<button class="niveau-chip" style="background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66" title="Tippen: „${esc(k.name)}" für dieses Kind als geschafft markieren" onclick="event.stopPropagation();markKategorieDone('${kind.id}','${id}')">${k.icon} ${esc(k.name)} ✓</button>` : ''; }).join('')}</div>`;
 }
 
