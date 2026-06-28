@@ -2,7 +2,7 @@
   "name": "Caros Seepferdchen",
   "short_name": "Seepferdchen",
   "description": "Schwimmtrainer Logbuch",
-  "start_url": "/schwimmtrainer/",
+  "start_url": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#c2410c",
