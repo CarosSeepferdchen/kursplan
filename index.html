@@ -411,6 +411,13 @@
 
         /* ── Logbuch ── */
         .logbook { padding: 0 0.65rem 0.75rem; }
+        /* Bearbeitungsrechte: fremder Kurs = nur ansehen */
+        .kurs-ro-badge { font-size: 0.78rem; font-weight: 700; color: #64748b; background: #f1f5f9; border-radius: 99px; padding: 0.2rem 0.6rem; white-space: nowrap; }
+        .lb-ro-note { font-size: 0.8rem; font-weight: 600; color: #475569; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.4rem 0.6rem; margin-bottom: 0.5rem; }
+        .niveau-chip-ro { cursor: default; opacity: 0.75; }
+        .logbook-ro .lb-note, .logbook-ro .lb-anmerkung, .logbook-ro .lb-cb, .logbook-ro .lb-task-text, .logbook-ro .lb-drop, .logbook-ro .lb-stufe-komplett, .logbook-ro .lb-datum-trigger, .logbook-ro .lb-abz-datum-trigger { pointer-events: none; }
+        .logbook-ro .lb-note, .logbook-ro .lb-anmerkung { background: #f8fafc; color: #64748b; }
+        .logbook-ro .lb-stufe-komplett, .logbook-ro .logbook-actions, .logbook-ro .lb-datum-trigger, .logbook-ro .lb-abz-datum-trigger { display: none; }
         .logbook-tabs {
             display: flex;
             gap: 0.3rem;
@@ -1495,7 +1502,12 @@ function ensureStufen() {
         };
     });
     // Alte Entweder/Oder-Verknüpfung restlos entfernen (Feature abgeschafft)
-    state.badges.forEach(b => (b.anforderungen || []).forEach(a => { delete a.entwederOder; }));
+    // + Standard-Themen einmalig fest in die Aufgaben schreiben, damit die Chips aus den
+    //   (synchronisierten) Daten kommen statt aus der App-Version (AUFGABEN_KAT).
+    state.badges.forEach(b => (b.anforderungen || []).forEach(a => {
+        delete a.entwederOder;
+        if (!Array.isArray(a.kats) && !a.kat && AUFGABEN_KAT[a.id]) a.kats = [AUFGABEN_KAT[a.id]];
+    }));
     state.stufenVersion = STUFEN_VERSION;
     // Themen-Chips: beim ersten Mal mit den Standard-Themen füllen (danach frei bearbeitbar)
     if (!Array.isArray(state.kategorien) || !state.kategorien.length) {
@@ -1511,6 +1523,8 @@ function normalizeState(s) {
     if (!s.abschnittCount) s.abschnittCount = {};
     if (!s.dateien)      s.dateien = {};
     s.kinder.forEach(k => { if (k.kursId === undefined) k.kursId = null; });
+    // Ersteller-Backfill: Altkurse ohne owner → erster getaggter Trainer (sonst Fallback auf Betrachter-Vorlage)
+    s.kurse.forEach(k => { if (!k.owner) k.owner = (k.trainers && k.trainers[0]) || null; });
     return s;
 }
 
@@ -1539,12 +1553,26 @@ function save() {
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function getStufe(id) { return state.badges.find(b => b.id === id); }
+function getStufe(id, badges = state.badges) { return (badges || []).find(b => b.id === id); }
 function getKurs(id) { return state.kurse.find(k => k.id === id); }
 function kindObj(id) { return state.kinder.find(k => k.id === id); }
 
+// Definitionen (Abzeichen + Themen-Chips) eines Kurses = die des ERSTELLERS.
+// Eigene/selbst-erstellte Kurse nutzen die eigene Vorlage (state.*); fremd-erstellte die
+// live geladene Vorlage des Erstellers (ownerDefs). Fehlt sie → Fallback auf state.*.
+let ownerDefs = {};   // { ownerId: { badges:[...], kategorien:[...] } }
+function defsForKurs(kursId) {
+    const k = getKurs(kursId);
+    if (k && k.owner && k.owner !== viewingId && ownerDefs[k.owner]) {
+        const d = ownerDefs[k.owner];
+        return { badges: d.badges || state.badges, kategorien: d.kategorien || state.kategorien };
+    }
+    return { badges: state.badges, kategorien: state.kategorien };
+}
+function defsForKind(kind) { return defsForKurs(kind && kind.kursId); }
+
 function getStufenProgress(kind, stufeId) {
-    const st = getStufe(stufeId);
+    const st = getStufe(stufeId, defsForKind(kind).badges);
     if (!st || !st.anforderungen.length) return { done: 0, total: 0, pct: 0 };
     const p = (kind.progress || {})[stufeId] || {};
     const total = st.anforderungen.length;
@@ -1554,16 +1582,17 @@ function getStufenProgress(kind, stufeId) {
 
 // Stufe, an der das Kind gerade arbeitet = erste nicht-vollständige
 function aktuelleStufe(kind) {
-    if (!state.badges?.length) return { id: 'unbekannt', name: '?', farbe: '#94a3b8', anforderungen: [] };
-    for (const st of state.badges) {
+    const badges = defsForKind(kind).badges;
+    if (!badges?.length) return { id: 'unbekannt', name: '?', farbe: '#94a3b8', anforderungen: [] };
+    for (const st of badges) {
         const p = getStufenProgress(kind, st.id);
         if (p.total > 0 && p.done < p.total) return st;
     }
-    return state.badges[state.badges.length - 1];   // alles geschafft → höchste Stufe
+    return badges[badges.length - 1];   // alles geschafft → höchste Stufe
 }
 
 function alleStufenFertig(kind) {
-    return state.badges.every(st => {
+    return defsForKind(kind).badges.every(st => {
         const p = getStufenProgress(kind, st.id);
         return p.total > 0 && p.done === p.total;
     });
@@ -1572,7 +1601,7 @@ function alleStufenFertig(kind) {
 // Höchstes vollständig erreichtes Abzeichen eines Kindes (oder null = noch keins)
 function hoechstesAbzeichen(kind) {
     let result = null;
-    for (const st of state.badges) {
+    for (const st of defsForKind(kind).badges) {
         const p = getStufenProgress(kind, st.id);
         if (p.total > 0 && p.done === p.total) result = st;   // letztes komplettes = höchstes
     }
@@ -1644,6 +1673,7 @@ function addAusfall(kursId) {
     const iso = anwesenheitDatum;
     if (!iso) return;
     const kurs = getKurs(kursId); if (!kurs) return;
+    if (!canEditKurs(kurs)) return;   // fremder Kurs: nur ansehen
     if (!kurs.ausfall) kurs.ausfall = [];
     if (!kurs.ausfall.includes(iso)) kurs.ausfall.push(iso);
     save();
@@ -1651,12 +1681,14 @@ function addAusfall(kursId) {
 }
 function removeAusfall(kursId, iso) {
     const kurs = getKurs(kursId); if (!kurs) return;
+    if (!canEditKurs(kurs)) return;   // fremder Kurs: nur ansehen
     kurs.ausfall = (kurs.ausfall || []).filter(d => d !== iso);
     save();
     renderAnwesenheit();
 }
 function setBlock(kursId, feld, value) {
     const kurs = getKurs(kursId); if (!kurs) return;
+    if (!canEditKurs(kurs)) return;   // fremder Kurs: nur ansehen
     if (feld === 'von') kurs.blockVon = value || null; else kurs.blockBis = value || null;
     save();
 }
@@ -1730,6 +1762,7 @@ function renderAnwesenheit() {
     const key = 'd-' + anwesenheitDatum;
     wrap.innerHTML = kurse.map(kurs => {
         const cf = kursFarbe(kurs.id);
+        const ro = !canEditKurs(kurs);
         const kinder = kinderImKurs(kurs.id);
         const anwObj = (state.anwesenheit[kurs.id] || {})[key] || {};
         const anwesend = kinder.filter(k => anwObj[k.id]).length;
@@ -1737,7 +1770,7 @@ function renderAnwesenheit() {
         const ausgefallen = istAusfall(kurs, anwesenheitDatum);
         const rows = kinder.length
             ? kinder.map(k => `<label class="attendance-row">
-                <input type="checkbox" class="attendance-cb" ${anwObj[k.id] ? 'checked' : ''}
+                <input type="checkbox" class="attendance-cb" ${anwObj[k.id] ? 'checked' : ''} ${ro ? 'disabled' : ''}
                     onchange="toggleAnwesenheit('${kurs.id}','${key}','${k.id}',this.checked)">
                 <span class="attendance-name">${esc(k.name)}</span>
               </label>`).join('')
@@ -1746,18 +1779,19 @@ function renderAnwesenheit() {
             ? `<div class="anw-ausfall-note">🚫 Dieser Termin fällt aus (Ferien/Feiertag)</div>`
             : `<div style="padding:0.6rem 0.85rem 0.2rem">${rows}</div>`;
         const ausfallChips = (kurs.ausfall || []).slice().sort().map(iso =>
-            `<span class="anw-ausfall-chip">${new Date(iso + 'T00:00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}<button onclick="removeAusfall('${kurs.id}','${iso}')" title="Entfernen">×</button></span>`
+            `<span class="anw-ausfall-chip">${new Date(iso + 'T00:00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}${ro ? '' : `<button onclick="removeAusfall('${kurs.id}','${iso}')" title="Entfernen">×</button>`}</span>`
         ).join('');
         return `<div class="kurs-card${ausgefallen ? ' kurs-ausgefallen' : ''}" style="border-left-color:${cf.farbe};margin-bottom:1.1rem">
             <div class="kurs-card-head" style="background:${cf.hell}">
                 <div class="kurs-head-left">
-                    <div class="kurs-title" style="color:${cf.farbe}"><button class="kurs-fav ${kurs.favorit ? 'is-fav' : ''}" onclick="event.stopPropagation();toggleFavorit('${kurs.id}')" title="${kurs.favorit ? 'Favorit entfernen' : 'Als Favorit markieren'}">${kurs.favorit ? '★' : '☆'}</button>${esc(kurs.name)}${kursTrainerChipsHTML(kurs)}</div>
+                    <div class="kurs-title" style="color:${cf.farbe}">${favStarHTML(kurs)}${esc(kurs.name)}${kursTrainerChipsHTML(kurs)}</div>
                     <div class="kurs-sub">${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}</div>
                 </div>
                 ${!ausgefallen && kinder.length ? `<div class="anw-count" id="attendance-sum-${kurs.id}-${key}">${anwesend} von ${kinder.length} anwesend</div>` : ''}
             </div>
             ${body}
             <div class="anw-card-foot">
+                ${ro ? '<div class="lb-ro-note">👁 Fremder Kurs – nur ansehen. Anwesenheit und Termine kannst du hier nicht ändern.</div>' : `
                 <div class="anw-block-row">
                     <span class="anw-block-label">📅 Kursblock:</span>
                     <input type="date" class="anw-block-input" value="${kurs.blockVon || ''}" onchange="setBlock('${kurs.id}','von',this.value)" title="Block-Start">
@@ -1767,7 +1801,7 @@ function renderAnwesenheit() {
                 <div class="anw-ausfall-manage">
                     <span class="anw-block-label">🚫 Ausfalltage:</span>
                     <button class="anw-ausfall-add" onclick="addAusfall('${kurs.id}')" title="Den oben angezeigten Tag als Ausfall eintragen">➕ Diesen Tag eintragen</button>
-                </div>
+                </div>`}
                 <div class="anw-ausfall-chips">${ausfallChips || '<span class="anw-ausfall-keine">keine Ausfalltage</span>'}</div>
             </div>
         </div>`;
@@ -1777,6 +1811,7 @@ function renderAnwesenheit() {
 // ── Datei-Upload ──────────────────────────────────────────────────
 
 function toggleAnwesenheit(kursId, kw, kindId, checked) {
+    if (!canEditKurs(getKurs(kursId))) return;   // fremder Kurs: nur ansehen
     if (!state.anwesenheit[kursId]) state.anwesenheit[kursId] = {};
     if (!state.anwesenheit[kursId][kw]) state.anwesenheit[kursId][kw] = {};
     if (checked) state.anwesenheit[kursId][kw][kindId] = true;
@@ -1794,9 +1829,19 @@ function toggleAnwesenheit(kursId, kw, kindId, checked) {
 
 function setDay(d) { currentDay = d; expandedKindId = null; renderKurse(); }
 
+// Favoriten-Stern als Knopf (bearbeitbar) oder als reine Anzeige (fremder Kurs)
+function favStarHTML(kurs) {
+    const cls = kurs.favorit ? 'is-fav' : '';
+    const sym = kurs.favorit ? '★' : '☆';
+    if (!canEditKurs(kurs))
+        return `<span class="kurs-fav ${cls}" style="cursor:default" title="${kurs.favorit ? 'Favorit' : 'Kein Favorit'}">${sym}</span>`;
+    return `<button class="kurs-fav ${cls}" onclick="event.stopPropagation();toggleFavorit('${kurs.id}')" title="${kurs.favorit ? 'Favorit entfernen' : 'Als Favorit markieren'}">${sym}</button>`;
+}
+
 // Favoriten-Stern umschalten — wirkt überall (Kurse, Anwesenheit, Training), da auf dem Kurs gespeichert
 function toggleFavorit(kursId) {
     const kurs = getKurs(kursId); if (!kurs) return;
+    if (!canEditKurs(kurs)) return;   // fremder Kurs: nur ansehen
     kurs.favorit = !kurs.favorit;
     save();
     if (!document.getElementById('tab-kurse').hidden)       renderKurse();
@@ -1873,7 +1918,22 @@ function emptyKurseHTML() {
         <p>Leg deinen ersten Kurs an, z.B. „Mittwoch 15:00 Anfänger".</p></div>`;
 }
 
+// ── Bearbeitungsrechte ────────────────────────────────────────────
+// Nur getaggte Trainer dürfen einen Kurs ändern; alle anderen sehen ihn nur an.
+function canEditKurs(kurs) {
+    if (!kurs) return true;
+    if (!supaUser) return true;                          // ohne Login (offline) nicht einschränken
+    const tags = kurs.trainers || [];
+    if (!tags.length) return viewingId === supaUser.id;  // alte/ungetaggte Kurse: nur im eigenen Bereich
+    return tags.includes(supaUser.id);                   // getaggt → nur die getaggten Trainer
+}
+function canEditKind(kindOrId) {
+    const kind = typeof kindOrId === 'string' ? kindObj(kindOrId) : kindOrId;
+    return kind ? canEditKurs(getKurs(kind.kursId)) : true;
+}
+
 function kursCardHTML(kurs) {
+    const ro = !canEditKurs(kurs);
     let kinder = kinderImKurs(kurs.id);
     if (niveauModus) kinder = kinder.slice().sort((a, b) => kindNiveauScore(a) - kindNiveauScore(b) || a.name.localeCompare(b.name, 'de'));
     const cf = kursFarbe(kurs.id);
@@ -1882,18 +1942,19 @@ function kursCardHTML(kurs) {
     const bedarf = (niveauModus && kinder.length) ? foerderbedarfHTML(kinder) : '';
     const katOrder = niveauModus ? kursKatReihenfolge(kinder) : null;   // Chips nach Häufigkeit im Kurs
     const kinderHTML = kinder.length
-        ? kinder.map(k => kindBlockHTML(k, false, katOrder)).join('')
-        : `<div class="kurs-empty">${trainerMode ? 'Noch keine Kinder · „＋ Kind" zum Hinzufügen' : 'Noch keine Kinder eingetragen'}</div>`;
+        ? kinder.map(k => kindBlockHTML(k, false, katOrder, ro)).join('')
+        : `<div class="kurs-empty">${ro ? 'Noch keine Kinder eingetragen' : 'Noch keine Kinder · „＋ Kind" zum Hinzufügen'}</div>`;
     return `<div class="kurs-card" style="border-left-color:${cf.farbe}">
         <div class="kurs-card-head" style="background:${cf.hell}">
             <div class="kurs-head-left">
-                <div class="kurs-title" style="color:${cf.farbe}"><button class="kurs-fav ${kurs.favorit ? 'is-fav' : ''}" onclick="event.stopPropagation();toggleFavorit('${kurs.id}')" title="${kurs.favorit ? 'Favorit entfernen' : 'Als Favorit markieren'}">${kurs.favorit ? '★' : '☆'}</button>${esc(kurs.name)}${kursTrainerChipsHTML(kurs)}</div>
+                <div class="kurs-title" style="color:${cf.farbe}">${favStarHTML(kurs)}${esc(kurs.name)}${kursTrainerChipsHTML(kurs)}</div>
                 <div class="kurs-sub">${WOCHENTAGE[kurs.wochentag]} ${zeit}${kurs.jahrgang ? ' · ' + formatJahrgang(kurs.jahrgang, kurs.jahrgangBis) : ''}${blockLabel(kurs)} · ${kinder.length} Kind${kinder.length !== 1 ? 'er' : ''}</div>
             </div>
             <div class="kurs-actions">
+                ${ro ? `<span class="kurs-ro-badge" title="Du bist bei diesem Kurs nicht als Trainer eingetragen – nur ansehen">👁 nur ansehen</span>` : `
                 <button class="btn btn-sm trainer-only" style="background:${cf.farbe};color:white" onclick="openAddKind('${kurs.id}')">＋ Kind</button>
                 <button class="icon-btn trainer-only" onclick="openEditKurs('${kurs.id}')" title="Kurs bearbeiten">🔧</button>
-                <button class="icon-btn trainer-only" onclick="deleteKurs('${kurs.id}')" title="Kurs löschen">🗑</button>
+                <button class="icon-btn trainer-only" onclick="deleteKurs('${kurs.id}')" title="Kurs löschen">🗑</button>`}
             </div>
         </div>
         <div class="kurs-kinder">${bedarf}${kinderHTML}</div>
@@ -1902,7 +1963,8 @@ function kursCardHTML(kurs) {
 
 // ── Kind-Zeile + Logbuch ──────────────────────────────────────────
 
-function kindBlockHTML(kind, showKurs, katOrder) {
+function kindBlockHTML(kind, showKurs, katOrder, ro) {
+    if (ro === undefined) ro = !canEditKind(kind);
     const expanded = kind.id === expandedKindId;
     let sub = '';
     if (showKurs) {
@@ -1917,10 +1979,10 @@ function kindBlockHTML(kind, showKurs, katOrder) {
                 ${sub ? `<div class="kind-row-sub">${sub}</div>` : ''}
             </div>
             <div class="kind-summary" id="kindsum-${kind.id}">${kindSummaryInner(kind)}</div>
-            <button class="kind-row-x" onclick="event.stopPropagation();deleteKind('${kind.id}')" title="Kind löschen">×</button>
+            ${ro ? '' : `<button class="kind-row-x" onclick="event.stopPropagation();deleteKind('${kind.id}')" title="Kind löschen">×</button>`}
         </div>
         ${niveauModus ? niveauKindChipsHTML(kind, katOrder) : ''}
-        ${expanded ? `<div class="logbook"><div id="logbook-panel">${logbookInnerHTML(kind)}</div></div>` : ''}
+        ${expanded ? `<div class="logbook${ro ? ' logbook-ro' : ''}"><div id="logbook-panel">${logbookInnerHTML(kind)}</div></div>` : ''}
     </div>`;
 }
 
@@ -1935,11 +1997,13 @@ function kindSummaryInner(kind) {
 }
 
 function logbookInnerHTML(kind) {
+    const ro = !canEditKind(kind);
+    const badges = defsForKind(kind).badges;   // Abzeichen-Seiten = Vorlage des Kurs-Erstellers
     if (!logbookPage) logbookPage = aktuelleStufe(kind).id;
-    const stufe = getStufe(logbookPage) || state.badges[0];
-    const seite = state.badges.findIndex(b => b.id === stufe.id) + 1;
+    const stufe = getStufe(logbookPage, badges) || badges[0];
+    const seite = badges.findIndex(b => b.id === stufe.id) + 1;
 
-    const tabs = state.badges.map(st => {
+    const tabs = badges.map(st => {
         const p = getStufenProgress(kind, st.id);
         const complete = p.total > 0 && p.done === p.total;
         const active = st.id === stufe.id;
@@ -1978,8 +2042,9 @@ function logbookInnerHTML(kind) {
     const abzDatum = ((kind.progress || {})[stufe.id] || {})['_abzeichen_datum'] || '';
     const stufeP = getStufenProgress(kind, stufe.id);
     const stufeKomplett = stufeP.total > 0 && stufeP.done === stufeP.total;
-    return `<textarea class="lb-anmerkung" placeholder="Individuelle Anmerkungen zum Kind…" onclick="event.stopPropagation()" onblur="saveKindAnmerkung('${kind.id}',this.value)">${esc(anmerkung)}</textarea>
-        <div class="lb-page-title"><span class="kind-sum-dot" style="width:13px;height:13px;background:${stufe.farbe}"></span>${esc(stufe.name)}<span class="lb-page-num">Seite ${seite} von ${state.badges.length}</span></div>
+    return `${ro ? '<div class="lb-ro-note">👁 Fremder Kurs – nur ansehen. Änderungen sind hier nicht möglich.</div>' : ''}
+        <textarea class="lb-anmerkung" placeholder="Individuelle Anmerkungen zum Kind…" onclick="event.stopPropagation()" onblur="saveKindAnmerkung('${kind.id}',this.value)">${esc(anmerkung)}</textarea>
+        <div class="lb-page-title"><span class="kind-sum-dot" style="width:13px;height:13px;background:${stufe.farbe}"></span>${esc(stufe.name)}<span class="lb-page-num">Seite ${seite} von ${badges.length}</span></div>
         ${stufeKomplett ? `<div class="lb-abz-datum-row">Abzeichen erworben: ${abzDatum
             ? `<span class="lb-abz-datum-val" id="abz-${kind.id}-${stufe.id}" onclick="event.stopPropagation();showAbzDatumInput('${kind.id}','${stufe.id}','abz-${kind.id}-${stufe.id}')">${abzDatum}</span>`
             : `<span class="lb-abz-datum-trigger trainer-only" id="abz-${kind.id}-${stufe.id}" onclick="event.stopPropagation();showAbzDatumInput('${kind.id}','${stufe.id}','abz-${kind.id}-${stufe.id}')"></span>`
@@ -1998,12 +2063,14 @@ function logbookInnerHTML(kind) {
 
 function saveKindAnmerkung(kindId, value) {
     const kind = kindObj(kindId); if (!kind) return;
+    if (!canEditKind(kind)) return;   // fremder Kurs: nur ansehen
     kind.anmerkung = value.trim();
     save();
 }
 
 function saveNotiz(kindId, stufeId, anfId, value) {
     const kind = kindObj(kindId); if (!kind) return;
+    if (!canEditKind(kind)) return;   // fremder Kurs: nur ansehen
     if (!kind.progress) kind.progress = {};
     if (!kind.progress[stufeId]) kind.progress[stufeId] = {};
     const key = anfId + '_note';
@@ -2021,6 +2088,7 @@ function stickerDropsHTML(kindId, stufeId, anfId, count) {
 
 function setSticker(kindId, stufeId, anfId, n) {
     const kind = kindObj(kindId); if (!kind) return;
+    if (!canEditKind(kind)) return;   // fremder Kurs: nur ansehen
     if (!kind.progress) kind.progress = {};
     if (!kind.progress[stufeId]) kind.progress[stufeId] = {};
     const key = anfId + '_sticker';
@@ -2055,6 +2123,7 @@ function selectLogbookPage(stufeId) {
 
 function toggleAufgabe(kindId, stufeId, anfId, checked) {
     const kind = kindObj(kindId); if (!kind) return;
+    if (!canEditKind(kind)) return;   // fremder Kurs: nur ansehen
     if (!kind.progress) kind.progress = {};
     if (!kind.progress[stufeId]) kind.progress[stufeId] = {};
     // false explizit löschen statt speichern — vermeidet Zombie-Keys im progress-Objekt
@@ -2081,8 +2150,10 @@ function toggleAufgabe(kindId, stufeId, anfId, checked) {
 // damit man höhere Abzeichen erreichen kann, ohne jede niedrigere Stufe einzeln abzuhaken.
 function toggleStufeKomplett(kindId, stufeId, checked) {
     const kind = kindObj(kindId); if (!kind) return;
-    const st = getStufe(stufeId); if (!st) return;
-    const stufeIdx = state.badges.findIndex(b => b.id === stufeId);
+    if (!canEditKind(kind)) return;   // fremder Kurs: nur ansehen
+    const badges = defsForKind(kind).badges;   // gegen die Vorlage des Kurs-Erstellers schreiben
+    const st = getStufe(stufeId, badges); if (!st) return;
+    const stufeIdx = badges.findIndex(b => b.id === stufeId);
     if (!checked && !confirm('Alle Haken dieser Stufe wieder entfernen?')) {
         const p0 = document.getElementById('logbook-panel');
         if (p0) p0.innerHTML = logbookInnerHTML(kind);   // Häkchen zurücksetzen
@@ -2092,7 +2163,7 @@ function toggleStufeKomplett(kindId, stufeId, checked) {
     if (checked) {
         // diese Stufe UND alle Stufen davor auf einmal abhaken → niedrigere Abzeichen überspringen
         for (let i = 0; i <= stufeIdx; i++) {
-            const lvl = state.badges[i];
+            const lvl = badges[i];
             if (!kind.progress[lvl.id]) kind.progress[lvl.id] = {};
             lvl.anforderungen.forEach(a => { kind.progress[lvl.id][a.id] = true; });
         }
@@ -2124,6 +2195,7 @@ function formatVonInput(val) {
 
 function speicherDatum(kindId, stufeId, anfId, val) {
     const kind = kindObj(kindId); if (!kind) return;
+    if (!canEditKind(kind)) return;   // fremder Kurs: nur ansehen
     if (!kind.progress?.[stufeId]) return;
     const datum = formatVonInput(val);
     if (datum) kind.progress[stufeId][anfId + '_datum'] = datum;
@@ -2133,6 +2205,7 @@ function speicherDatum(kindId, stufeId, anfId, val) {
 
 function speicherAbzeichenDatum(kindId, stufeId, val) {
     const kind = kindObj(kindId); if (!kind) return;
+    if (!canEditKind(kind)) return;   // fremder Kurs: nur ansehen
     if (!kind.progress[stufeId]) kind.progress[stufeId] = {};
     const datum = formatVonInput(val);
     if (datum) kind.progress[stufeId]['_abzeichen_datum'] = datum;
@@ -2244,6 +2317,7 @@ function openAddKurs() {
 function openEditKurs(id) {
     editKursId = id;
     const kurs = getKurs(id); if (!kurs) return;
+    if (!canEditKurs(kurs)) { alert('Dieser Kurs gehört einem anderen Trainer – du kannst ihn nur ansehen.'); return; }
     document.getElementById('modal-kurs-title').textContent = 'Kurs bearbeiten';
     document.getElementById('kurs-name').value = kurs.name;
     editKursTags = (kurs.trainers && kurs.trainers.slice()) || (supaUser ? [supaUser.id] : []);
@@ -2265,10 +2339,11 @@ function saveKurs() {
     const jahrgangBis = parseInt(document.getElementById('kurs-jahrgang-bis').value) || null;
     const von = document.getElementById('kurs-von').value;
     const bis = document.getElementById('kurs-bis').value;
+    if (editKursId && !canEditKurs(getKurs(editKursId))) { alert('Dieser Kurs gehört einem anderen Trainer – du kannst ihn nur ansehen.'); return; }
     if (editKursId) {
         Object.assign(getKurs(editKursId), { name, trainers: trainers_, trainer: null, wochentag, jahrgang, jahrgangBis, von, bis });
     } else {
-        state.kurse.push({ id: uid(), name, trainers: trainers_, wochentag, jahrgang, jahrgangBis, von, bis });
+        state.kurse.push({ id: uid(), name, trainers: trainers_, owner: (supaUser ? supaUser.id : null), wochentag, jahrgang, jahrgangBis, von, bis });
     }
     currentDay = wochentag;
     save(); closeModal('modal-kurs'); renderKurse();
@@ -2276,6 +2351,7 @@ function saveKurs() {
 
 function deleteKurs(id) {
     const kurs = getKurs(id); if (!kurs) return;
+    if (!canEditKurs(kurs)) { alert('Dieser Kurs gehört einem anderen Trainer – du kannst ihn nur ansehen.'); return; }
     const anzahl = kinderImKurs(id).length;
     const msg = anzahl > 0
         ? `Kurs „${kurs.name}" löschen?\n\n⚠️ ACHTUNG: Die ${anzahl} Kind${anzahl !== 1 ? 'er' : ''} in diesem Kurs werden MITGELÖSCHT – samt aller Lernfortschritte und Abzeichen.\n\nDas lässt sich NICHT rückgängig machen!`
@@ -2305,6 +2381,7 @@ function fillKursSelect(selectedId) {
 }
 
 function openAddKind(presetKursId) {
+    if (presetKursId && !canEditKurs(getKurs(presetKursId))) { alert('Dieser Kurs gehört einem anderen Trainer – du kannst ihn nur ansehen.'); return; }
     editKindId = null;
     document.getElementById('modal-kind-title').textContent = 'Kind hinzufügen';
     document.getElementById('kind-name').value = '';
@@ -2317,6 +2394,7 @@ function openAddKind(presetKursId) {
 function openEditKind(id) {
     editKindId = id;
     const kind = kindObj(id); if (!kind) return;
+    if (!canEditKind(kind)) { alert('Dieses Kind gehört zu einem fremden Kurs – du kannst es nur ansehen.'); return; }
     document.getElementById('modal-kind-title').textContent = 'Kind bearbeiten';
     document.getElementById('kind-name').value = kind.name;
     document.getElementById('kind-pdf-btn').style.display = 'block';
@@ -2328,6 +2406,7 @@ function saveKind() {
     const name = document.getElementById('kind-name').value.trim();
     if (!name) { document.getElementById('kind-name').focus(); return; }
     const kursId = document.getElementById('kind-kurs').value || null;
+    if (editKindId && !canEditKind(editKindId)) { alert('Dieses Kind gehört zu einem fremden Kurs – du kannst es nur ansehen.'); return; }
     if (editKindId) {
         Object.assign(kindObj(editKindId), { name, kursId });
     } else {
@@ -2338,6 +2417,7 @@ function saveKind() {
 
 function deleteKind(id) {
     const kind = kindObj(id); if (!kind) return;
+    if (!canEditKind(kind)) { alert('Dieses Kind gehört zu einem fremden Kurs – du kannst es nur ansehen.'); return; }
     if (!confirm(`„${kind.name}" wirklich löschen?`)) return;
     state.kinder = state.kinder.filter(k => k.id !== id);
     if (expandedKindId === id) expandedKindId = null;
@@ -2373,15 +2453,16 @@ function openEditStufe(id) {
     document.getElementById('badge-name').value = stufe.name;
     document.getElementById('badge-color').value = stufe.farbe;
     document.getElementById('anf-builder').innerHTML = '';
-    if (stufe.anforderungen.length) stufe.anforderungen.forEach(a => addAnfRow(a.text, aufgabeKats(a)));
+    if (stufe.anforderungen.length) stufe.anforderungen.forEach(a => addAnfRow(a.text, aufgabeKats(a), a.id));
     else { addAnfRow(); addAnfRow(); addAnfRow(); }
     openModal('modal-badge');
 }
 
-function addAnfRow(value = '', kats = []) {
+function addAnfRow(value = '', kats = [], id = '') {
     if (!Array.isArray(kats)) kats = kats ? [kats] : [];
     const row = document.createElement('div');
     row.className = 'anf-row';
+    if (id) row.dataset.anfId = id;
     row.innerHTML = `<div class="anf-row-top">
             <input class="anf-input" type="text" value="${esc(value)}" placeholder="Ziel beschreiben…">
             <button class="anf-del" onclick="this.closest('.anf-row').remove()" title="Ziel entfernen">×</button>
@@ -2396,13 +2477,13 @@ function saveStufe() {
     const farbe = document.getElementById('badge-color').value;
     const neue = [];
     const rows = [...document.querySelectorAll('#anf-builder .anf-row')];
-    rows.forEach((row, idx) => {
+    rows.forEach((row) => {
         const text = row.querySelector('.anf-input').value.trim();
         if (text) {
             const kats = [...row.querySelectorAll('.anf-kats .kat-toggle.sel')].map(b => b.dataset.kat);
-            // Aufgabe an derselben Position behält ihre ID (auch bei Umbenennen)
-            const alt = stufe.anforderungen[idx];
-            neue.push({ id: alt ? alt.id : uid(), text, kats });
+            // Aufgabe behält ihre ID über das Zeilen-Attribut (auch bei Löschen/Umsortieren);
+            // neue Zeilen ohne ID bekommen eine frische. So verrutschen Kinder-Häkchen nie.
+            neue.push({ id: row.dataset.anfId || uid(), text, kats });
         }
     });
     Object.assign(stufe, { name, farbe, anforderungen: neue });
@@ -2482,13 +2563,14 @@ document.addEventListener('click', e => {
 
 // Einzelner Kind-Block für die PDF (genutzt von teilen() und teileKind())
 function kindPDFBlock(kind) {
+    const badges = defsForKind(kind).badges;   // Abzeichen-Leiter = Vorlage des Kurs-Erstellers
     const fertig = alleStufenFertig(kind);
     const aktStufe = aktuelleStufe(kind);
     const aktP = getStufenProgress(kind, aktStufe.id);
     const prog = (kind.progress || {})[aktStufe.id] || {};
 
     // Stufen-Fortschritts-Bubbles
-    const bubbles = state.badges.map(st => {
+    const bubbles = badges.map(st => {
         const p = getStufenProgress(kind, st.id);
         const done = p.total > 0 && p.done === p.total;
         const active = st.id === aktStufe.id && !fertig;
@@ -2498,7 +2580,7 @@ function kindPDFBlock(kind) {
     }).join('');
 
     // Erhaltene Abzeichen — nur die mit eingetragenem Datum
-    const erhalten = state.badges.filter(st =>
+    const erhalten = badges.filter(st =>
         !!(((kind.progress || {})[st.id] || {})['_abzeichen_datum'])
     );
     const abzeichenZeile = erhalten.length
@@ -2834,7 +2916,7 @@ const KATEGORIEN_DEFAULT = [
     { id: 'theorie',         icon: '📋', name: 'Theorie',         farbe: '#64748b' },
 ];
 const KAT_PALETTE = ['#16a34a','#db2777','#ea580c','#0d9488','#7c3aed','#2563eb','#ca8a04','#0891b2','#dc2626','#4f46e5','#65a30d','#9333ea'];
-function katById(id) { return (state.kategorien || []).find(k => k.id === id); }
+function katById(id, kategorien = state.kategorien) { return (kategorien || []).find(k => k.id === id); }
 // Standard-Zuordnung der Default-Aufgaben (Fallback, solange eine Aufgabe keine eigenen Themen hat)
 const AUFGABEN_KAT = {
     fr1:'theorie', fr2:'wasser', fr3:'wasser', fr4:'springen', fr5:'ausdauer', fr6:'wasser', fr7:'wasser', fr8:'theorie',
@@ -2845,11 +2927,18 @@ const AUFGABEN_KAT = {
     go1:'ausdauer', go2:'technik', go3:'technik', go4:'streckentauchen', go5:'ausdauer',
 };
 // Themen (Chips) einer Aufgabe — MEHRFACH möglich. Eigene `kats` → altes `kat` → Standard-Map → keins.
-function aufgabeKats(anf) {
-    if (anf && Array.isArray(anf.kats)) return anf.kats;
-    if (anf && anf.kat) return [anf.kat];
-    if (anf && AUFGABEN_KAT[anf.id]) return [AUFGABEN_KAT[anf.id]];
-    return [];
+// Wird `kategorien` übergeben, werden gespeicherte Themen, die es dort NICHT (mehr) gibt,
+// ignoriert; bleibt dann nichts Gültiges übrig, greift die Standard-Zuordnung (AUFGABEN_KAT).
+// → robust gegen verwaiste Themen-IDs (Kategorien-Umbau / nie synchronisierte Chips).
+function aufgabeKats(anf, kategorien) {
+    let result = (anf && Array.isArray(anf.kats)) ? anf.kats.slice()
+               : (anf && anf.kat) ? [anf.kat] : [];
+    if (kategorien) {
+        const valid = new Set(kategorien.map(k => k.id));
+        result = result.filter(id => valid.has(id));
+    }
+    if (!result.length && anf && AUFGABEN_KAT[anf.id]) result = [AUFGABEN_KAT[anf.id]];
+    return result;
 }
 // Ein Auswahl-Chip (Mehrfachauswahl) für den Abzeichen-Editor
 function katChipHTML(k, sel) {
@@ -2865,9 +2954,10 @@ function toggleKatChip(btn) {
 
 // Niveau-Punktzahl: höher = weiter. (für Sortierung)
 function kindNiveauScore(kind) {
-    if (alleStufenFertig(kind)) return state.badges.length + 1;
+    const badges = defsForKind(kind).badges;
+    if (alleStufenFertig(kind)) return badges.length + 1;
     const st = aktuelleStufe(kind);
-    const idx = state.badges.findIndex(b => b.id === st.id);
+    const idx = badges.findIndex(b => b.id === st.id);
     const p = getStufenProgress(kind, st.id);
     return idx + (p.total ? p.done / p.total : 0);
 }
@@ -2876,10 +2966,11 @@ function kindNiveauScore(kind) {
 function offeneKategorien(kind) {
     if (alleStufenFertig(kind)) return [];
     const st = aktuelleStufe(kind);
+    const kategorien = defsForKind(kind).kategorien;   // Themen des Kurs-Erstellers
     const prog = (kind.progress || {})[st.id] || {};
     const set = new Set();
-    st.anforderungen.forEach(a => { if (!prog[a.id]) aufgabeKats(a).forEach(c => set.add(c)); });
-    return state.kategorien.filter(k => set.has(k.id)).map(k => k.id);   // feste Reihenfolge → ruhiger fürs Auge
+    st.anforderungen.forEach(a => { if (!prog[a.id]) aufgabeKats(a, kategorien).forEach(c => set.add(c)); });
+    return kategorien.filter(k => set.has(k.id)).map(k => k.id);
 }
 
 // ── Niveau-Modus: Förderbedarf direkt in den Kurskarten ───────────
@@ -2892,9 +2983,10 @@ function toggleNiveauModus() {
 // Förderbedarf eines Kurses als Säulen-Grafik: welche Themen müssen am meisten geübt werden?
 // (= wie viele Kinder pro Thema noch eine offene Aufgabe haben), absteigend sortiert.
 function foerderbedarfHTML(kinder) {
-    const katKinder = {}; state.kategorien.forEach(k => katKinder[k.id] = []);
+    const kategorien = defsForKurs(kinder[0] && kinder[0].kursId).kategorien;   // Themen des Kurs-Erstellers
+    const katKinder = {}; kategorien.forEach(k => katKinder[k.id] = []);
     kinder.forEach(kind => offeneKategorien(kind).forEach(id => { if (katKinder[id]) katKinder[id].push(kind); }));
-    const aktiv = state.kategorien.filter(k => katKinder[k.id].length)
+    const aktiv = kategorien.filter(k => katKinder[k.id].length)
         .sort((a, b) => katKinder[b.id].length - katKinder[a.id].length);
     if (!aktiv.length) return `<div class="kurs-bedarf"><div class="kurs-bedarf-done">🎉 Alle durch — kein offener Förderbedarf</div></div>`;
     const maxC = Math.max(1, ...aktiv.map(k => katKinder[k.id].length));
@@ -2913,9 +3005,10 @@ function foerderbedarfHTML(kinder) {
 // Themen-Reihenfolge eines Kurses: das im Kurs am HÄUFIGSTEN fehlende Thema zuerst
 // (bei Gleichstand nach fester KATEGORIEN-Reihenfolge) → Chips aller Kinder gleich geordnet.
 function kursKatReihenfolge(kinder) {
-    const cnt = {}; state.kategorien.forEach(k => cnt[k.id] = 0);
+    const kategorien = defsForKurs(kinder[0] && kinder[0].kursId).kategorien;   // Themen des Kurs-Erstellers
+    const cnt = {}; kategorien.forEach(k => cnt[k.id] = 0);
     kinder.forEach(kind => offeneKategorien(kind).forEach(id => { if (cnt[id] != null) cnt[id]++; }));
-    const order = state.kategorien.map(k => k.id);
+    const order = kategorien.map(k => k.id);
     return order.slice().sort((a, b) => (cnt[b] - cnt[a]) || (order.indexOf(a) - order.indexOf(b)));
 }
 
@@ -2926,20 +3019,30 @@ function niveauKindChipsHTML(kind, katOrder) {
     let offen = offeneKategorien(kind);
     if (!offen.length) return '';
     if (katOrder) offen = offen.slice().sort((a, b) => katOrder.indexOf(a) - katOrder.indexOf(b));
-    return `<div class="niveau-chips">${offen.map(id => { const k = katById(id); return k ? `<button class="niveau-chip" style="background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66" title="Tippen: „${esc(k.name)}" für dieses Kind als geschafft markieren" onclick="event.stopPropagation();markKategorieDone('${kind.id}','${id}')">${k.icon ? k.icon + ' ' : ''}${esc(k.name)}</button>` : ''; }).join('')}</div>`;
+    const ro = !canEditKind(kind);
+    const kategorien = defsForKind(kind).kategorien;   // Themen des Kurs-Erstellers
+    return `<div class="niveau-chips">${offen.map(id => { const k = katById(id, kategorien); if (!k) return '';
+        const style = `background:${k.farbe}1a;color:${k.farbe};border-color:${k.farbe}66`;
+        const label = `${k.icon ? k.icon + ' ' : ''}${esc(k.name)}`;
+        return ro
+            ? `<span class="niveau-chip niveau-chip-ro" style="${style}">${label}</span>`
+            : `<button class="niveau-chip" style="${style}" title="Tippen: „${esc(k.name)}" für dieses Kind als geschafft markieren" onclick="event.stopPropagation();markKategorieDone('${kind.id}','${id}')">${label}</button>`;
+    }).join('')}</div>`;
 }
 
 // Ein Thema für ein Kind direkt als geschafft markieren — hakt alle offenen Ziele dieses Themas
 // in der aktuellen Stufe im Hintergrund ab (ohne dass man ins Logbuch muss).
 function markKategorieDone(kindId, katId) {
     const kind = kindObj(kindId); if (!kind) return;
+    if (!canEditKind(kind)) return;   // fremder Kurs: nur ansehen
     if (alleStufenFertig(kind)) return;
     const st = aktuelleStufe(kind);
     if (!kind.progress) kind.progress = {};
     if (!kind.progress[st.id]) kind.progress[st.id] = {};
     let changed = false;
+    const kategorien = defsForKind(kind).kategorien;
     st.anforderungen.forEach(a => {
-        if (!kind.progress[st.id][a.id] && aufgabeKats(a).includes(katId)) { kind.progress[st.id][a.id] = true; changed = true; }
+        if (!kind.progress[st.id][a.id] && aufgabeKats(a, kategorien).includes(katId)) { kind.progress[st.id][a.id] = true; changed = true; }
     });
     if (changed) { save(); renderKurse(); }
 }
@@ -3087,6 +3190,7 @@ async function loadFromCloud() {
     setCloudDot('sync');
     const self = viewingId === supaUser.id;
     loadedSharedIds = new Set();
+    ownerDefs = {};
     try {
         // 1) persönlicher Bereich (eigener Blob)
         const { data, error } = await supa.from('trainer_data').select('state').eq('user_id', viewingId).maybeSingle();
@@ -3108,6 +3212,15 @@ async function loadFromCloud() {
             mergeSharedIntoState(rows);
         } catch(e2) { /* Tabelle fehlt o.ä. → ohne geteilte Kurse weiter */ }
         ensureStufen();
+        // 3) Definitionen (Abzeichen + Themen-Chips) der Kurs-Ersteller laden, die NICHT der
+        //    Betrachter sind → fremd-erstellte Kurse werden mit der Vorlage des Erstellers gezeigt.
+        try {
+            const owners = [...new Set(state.kurse.map(k => k.owner).filter(o => o && o !== viewingId))];
+            if (owners.length) {
+                const { data: defs } = await supa.from('trainer_data').select('user_id,state').in('user_id', owners);
+                (defs || []).forEach(r => { const s = r.state || {}; ownerDefs[r.user_id] = { badges: s.badges, kategorien: s.kategorien }; });
+            }
+        } catch(e3) { /* ohne Ersteller-Defs weiter → Fallback auf Betrachter-Vorlage */ }
         if (self) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
             localStorage.setItem(STORAGE_USER_KEY, supaUser.id);
@@ -3150,6 +3263,7 @@ function partitionState() {
     const personal = {
         stufenVersion: state.stufenVersion,
         badges:        state.badges,
+        kategorien:    state.kategorien,
         kurse:         state.kurse.filter(k => !sharedIds.has(k.id)).map(stripShared),
         kinder:        state.kinder.filter(k => !sharedIds.has(k.kursId)),
         wochenplaene:  pick(state.wochenplaene),
